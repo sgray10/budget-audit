@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Local data and reports
+# Raw records may include large files or records not intended for git.
+data/raw/
+data/interim/
+data/processed/
+reports/
+
+# OS/editor
+.DS_Store
+.idea/
+.vscode/
