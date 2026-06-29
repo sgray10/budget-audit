@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "budget-audit"
+version = "0.1.0"
+description = "Civic-data toolkit for extracting, normalizing, reconciling, and analyzing local government budget documents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Stephen Gray" }
+]
+dependencies = [
+  "click>=8.1",
+  "pandas>=2.2",
+  "pydantic>=2.7",
+  "pdfplumber>=0.11",
+  "python-dateutil>=2.9",
+  "PyYAML>=6.0",
+  "rich>=13.7"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2",
+  "ruff>=0.5",
+  "mypy>=1.10"
+]
+ocr = [
+  "pytesseract>=0.3.10",
+  "pillow>=10.3"
+]
+
+[project.scripts]
+budget-audit = "budget_audit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["budget_audit"]
