@@ -1,0 +1,46 @@
+document_id: weakley-fwm-2026-06-30
+jurisdiction: Weakley County, Tennessee
+body: Finance, Ways, and Means Committee
+title: Finance, Ways, and Means Committee Meeting Packet
+meeting_date: 2026-06-30
+fiscal_years:
+  - FY 2025-26
+  - FY 2026-27
+source_file: data/raw/FWM-Meeting-Packet-6-30-26.pdf
+notes: >
+  Example manifest for the June 30, 2026 packet. Adjust after verifying page ranges.
+sections:
+  - name: Agenda
+    pages: [1, 2]
+  - name: June 1, 2026 minutes
+    pages: [3, 4, 5]
+  - name: Resolution 2026-52 investment policy
+    pages: [6, 22]
+  - name: Fund 101 General Fund budget
+    pages: [23]
+funds:
+  - number: 101
+    name: General Fund
+  - number: 116
+    name: Solid Waste
+  - number: 122
+    name: Drug Control
+  - number: 131
+    name: Highway
+  - number: 141
+    name: General Purpose School
+  - number: 143
+    name: School Nutrition
+  - number: 151
+    name: Debt Service
+  - number: 171
+    name: General Capital Projects
+  - number: 172
+    name: Community Development
+  - number: 202
+    name: Nursing Home
+review_questions:
+  - Which pages contain salary-related line items?
+  - Which budget amendments materially change fund totals?
+  - Which line items have the largest year-over-year deltas?
+  - Which sections require OCR or manual review?
