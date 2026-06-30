@@ -8,6 +8,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from budget_audit.enrich import enrich_ocr_rows_with_page_review
 from budget_audit.extract import extract_tables, inspect_pdf, sha256_file
 from budget_audit.ocr import ocr_rendered_pages
 from budget_audit.ocr_reports import find_compensation_hits
@@ -226,6 +227,22 @@ def find_compensation_cmd(ocr_dir: Path, out_path: Path, document_id: str) -> No
 def extract_ocr_rows_cmd(ocr_dir: Path, out_path: Path, document_id: str) -> None:
     """Extract likely budget table rows from OCR text files."""
     count = extract_ocr_table_rows(ocr_dir, out_path, document_id)
+    console.print(f"wrote {out_path} ({count} rows)")
+
+
+
+@main.command("enrich-ocr-rows")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--page-review",
+    "page_review_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+)
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+def enrich_ocr_rows_cmd(rows_path: Path, page_review_path: Path, out_path: Path) -> None:
+    """Enrich extracted OCR rows with page-review metadata."""
+    count = enrich_ocr_rows_with_page_review(rows_path, page_review_path, out_path)
     console.print(f"wrote {out_path} ({count} rows)")
 
 
