@@ -6,10 +6,11 @@ from collections import defaultdict
 from pathlib import Path
 
 
-SOURCE = Path("data/processed/ocr_table_rows_enriched.csv")
+SOURCE = Path("data/processed/ocr_table_rows_classified.csv")
 OUT_FUND = Path("data/processed/summary_by_fund.csv")
 OUT_SECTION = Path("data/processed/summary_by_section.csv")
 OUT_COMP = Path("data/processed/summary_compensation.csv")
+OUT_NON_LINE_ITEMS = Path("data/processed/summary_non_line_items.csv")
 
 
 COMPENSATION_RE = re.compile(
@@ -38,14 +39,17 @@ def fmt(value: int) -> str:
 
 
 rows = list(csv.DictReader(SOURCE.open(encoding="utf-8")))
+line_rows = [row for row in rows if row.get("row_type") == "line_item"]
+non_line_rows = [row for row in rows if row.get("row_type") != "line_item"]
 
 fund_totals: dict[tuple[str, str, str], int] = defaultdict(int)
 section_totals: dict[tuple[str, str, str, str], int] = defaultdict(int)
 comp_totals: dict[tuple[str, str, str], int] = defaultdict(int)
+non_line_totals: dict[tuple[str, str, str, str], int] = defaultdict(int)
 
 unparsed_amounts = []
 
-for row in rows:
+for row in line_rows:
     amount = parse_amount(row["budget_26_27"])
     if amount is None:
         unparsed_amounts.append(row)
@@ -90,11 +94,32 @@ with OUT_COMP.open("w", newline="", encoding="utf-8") as handle:
     for (fund_number, fund_name, label), total in sorted(comp_totals.items()):
         writer.writerow([fund_number, fund_name, label, total])
 
+for row in non_line_rows:
+    amount = parse_amount(row["budget_26_27"])
+    if amount is None:
+        continue
+    key = (
+        row["fund_number"],
+        row["fund_name"],
+        row.get("row_type", ""),
+        row.get("label", ""),
+    )
+    non_line_totals[key] += amount
+
+with OUT_NON_LINE_ITEMS.open("w", newline="", encoding="utf-8") as handle:
+    writer = csv.writer(handle)
+    writer.writerow(["fund_number", "fund_name", "row_type", "label", "budget_26_27_total"])
+    for (fund_number, fund_name, row_type, label), total in sorted(non_line_totals.items()):
+        writer.writerow([fund_number, fund_name, row_type, label, total])
+
 print(f"rows: {len(rows)}")
+print(f"line item rows summarized: {len(line_rows)}")
+print(f"non-line rows excluded: {len(non_line_rows)}")
 print(f"unparsed budget_26_27 amounts: {len(unparsed_amounts)}")
 print(f"wrote {OUT_FUND}")
 print(f"wrote {OUT_SECTION}")
 print(f"wrote {OUT_COMP}")
+print(f"wrote {OUT_NON_LINE_ITEMS}")
 
 print("\nFund totals:")
 for (fund_number, fund_name, budget_side), total in sorted(fund_totals.items()):
