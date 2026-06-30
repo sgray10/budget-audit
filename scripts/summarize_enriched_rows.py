@@ -39,8 +39,8 @@ def fmt(value: int) -> str:
 
 rows = list(csv.DictReader(SOURCE.open(encoding="utf-8")))
 
-fund_totals: dict[tuple[str, str], int] = defaultdict(int)
-section_totals: dict[tuple[str, str, str], int] = defaultdict(int)
+fund_totals: dict[tuple[str, str, str], int] = defaultdict(int)
+section_totals: dict[tuple[str, str, str, str], int] = defaultdict(int)
 comp_totals: dict[tuple[str, str, str], int] = defaultdict(int)
 
 unparsed_amounts = []
@@ -51,8 +51,16 @@ for row in rows:
         unparsed_amounts.append(row)
         continue
 
-    fund_key = (row["fund_number"], row["fund_name"])
-    section_key = (row["fund_number"], row["fund_name"], row["section_hint"])
+    section_hint = row["section_hint"].lower()
+    if "revenue" in section_hint:
+        budget_side = "revenue"
+    elif "summary" in section_hint:
+        budget_side = "summary"
+    else:
+        budget_side = "expenditure"
+
+    fund_key = (row["fund_number"], row["fund_name"], budget_side)
+    section_key = (row["fund_number"], row["fund_name"], budget_side, row["section_hint"])
 
     fund_totals[fund_key] += amount
     section_totals[section_key] += amount
@@ -66,15 +74,15 @@ OUT_FUND.parent.mkdir(parents=True, exist_ok=True)
 
 with OUT_FUND.open("w", newline="", encoding="utf-8") as handle:
     writer = csv.writer(handle)
-    writer.writerow(["fund_number", "fund_name", "budget_26_27_total"])
-    for (fund_number, fund_name), total in sorted(fund_totals.items()):
-        writer.writerow([fund_number, fund_name, total])
+    writer.writerow(["fund_number", "fund_name", "budget_side", "budget_26_27_total"])
+    for (fund_number, fund_name, budget_side), total in sorted(fund_totals.items()):
+        writer.writerow([fund_number, fund_name, budget_side, total])
 
 with OUT_SECTION.open("w", newline="", encoding="utf-8") as handle:
     writer = csv.writer(handle)
-    writer.writerow(["fund_number", "fund_name", "section_hint", "budget_26_27_total"])
-    for (fund_number, fund_name, section_hint), total in sorted(section_totals.items()):
-        writer.writerow([fund_number, fund_name, section_hint, total])
+    writer.writerow(["fund_number", "fund_name", "budget_side", "section_hint", "budget_26_27_total"])
+    for (fund_number, fund_name, budget_side, section_hint), total in sorted(section_totals.items()):
+        writer.writerow([fund_number, fund_name, budget_side, section_hint, total])
 
 with OUT_COMP.open("w", newline="", encoding="utf-8") as handle:
     writer = csv.writer(handle)
@@ -89,8 +97,8 @@ print(f"wrote {OUT_SECTION}")
 print(f"wrote {OUT_COMP}")
 
 print("\nFund totals:")
-for (fund_number, fund_name), total in sorted(fund_totals.items()):
-    print(f"  {fund_number} {fund_name}: {fmt(total)}")
+for (fund_number, fund_name, budget_side), total in sorted(fund_totals.items()):
+    print(f"  {fund_number} {fund_name} {budget_side}: {fmt(total)}")
 
 print("\nTop compensation labels:")
 for (fund_number, fund_name, label), total in sorted(comp_totals.items(), key=lambda item: item[1], reverse=True)[:25]:
