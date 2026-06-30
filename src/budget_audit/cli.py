@@ -13,6 +13,7 @@ from budget_audit.extract import extract_tables, inspect_pdf, sha256_file
 from budget_audit.ocr import ocr_rendered_pages
 from budget_audit.ocr_reports import find_compensation_hits
 from budget_audit.ocr_table_rows import extract_ocr_table_rows
+from budget_audit.reconcile import reconcile_fund
 from budget_audit.render import parse_page_spec, render_pdf_pages
 from budget_audit.review import build_ocr_review_queue
 from budget_audit.row_classify import classify_ocr_rows
@@ -193,7 +194,6 @@ def render_pages_cmd(pdf_path: Path, page_spec: str, out_dir: Path, dpi: int) ->
     console.print(f"rendered {len(rendered)} pages")
 
 
-
 @main.command("ocr-pages")
 @click.argument("rendered_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--pages", "page_spec", required=True, help="Pages to OCR, e.g. '23,44-50'.")
@@ -211,7 +211,6 @@ def ocr_pages_cmd(rendered_dir: Path, page_spec: str, out_dir: Path) -> None:
     console.print(f"ocr'd {len(results)} pages")
 
 
-
 @main.command("find-compensation")
 @click.argument("ocr_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
@@ -222,7 +221,6 @@ def find_compensation_cmd(ocr_dir: Path, out_path: Path, document_id: str) -> No
     console.print(f"wrote {out_path} ({count} rows)")
 
 
-
 @main.command("extract-ocr-rows")
 @click.argument("ocr_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
@@ -231,7 +229,6 @@ def extract_ocr_rows_cmd(ocr_dir: Path, out_path: Path, document_id: str) -> Non
     """Extract likely budget table rows from OCR text files."""
     count = extract_ocr_table_rows(ocr_dir, out_path, document_id)
     console.print(f"wrote {out_path} ({count} rows)")
-
 
 
 @main.command("enrich-ocr-rows")
@@ -249,7 +246,6 @@ def enrich_ocr_rows_cmd(rows_path: Path, page_review_path: Path, out_path: Path)
     console.print(f"wrote {out_path} ({count} rows)")
 
 
-
 @main.command("classify-ocr-rows")
 @click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
@@ -257,7 +253,6 @@ def classify_ocr_rows_cmd(rows_path: Path, out_path: Path) -> None:
     """Classify extracted/enriched OCR rows by row type and category."""
     count = classify_ocr_rows(rows_path, out_path)
     console.print(f"wrote {out_path} ({count} rows)")
-
 
 
 @main.command("summarize-ocr-rows")
@@ -275,7 +270,6 @@ def summarize_ocr_rows_cmd(rows_path: Path, out_dir: Path) -> None:
     console.print(f"wrote summaries to {out_dir}")
 
 
-
 @main.command("review-ocr-rows")
 @click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
@@ -283,7 +277,6 @@ def review_ocr_rows_cmd(rows_path: Path, out_path: Path) -> None:
     """Create a review queue for suspicious OCR-derived rows."""
     count = build_ocr_review_queue(rows_path, out_path)
     console.print(f"wrote {out_path} ({count} rows)")
-
 
 
 @main.command("normalize")
@@ -295,10 +288,19 @@ def normalize_cmd(input_path: Path, out_path: Path) -> None:
 
 
 @main.command("reconcile")
-@click.argument("input_path", type=click.Path(exists=True, path_type=Path))
-def reconcile_cmd(input_path: Path) -> None:
-    """Placeholder for reconciliation checks."""
-    console.print(f"TODO: reconcile {input_path}")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--fund", "fund_number", required=True, help="Fund number to reconcile, e.g. 101.")
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+def reconcile_cmd(rows_path: Path, fund_number: str, out_path: Path) -> None:
+    """Reconcile revenue, expenditures, and transfers for one fund."""
+    stats = reconcile_fund(rows_path, out_path, fund_number)
+    console.print(f"wrote {out_path}")
+    console.print(
+        f"fund {fund_number}: "
+        f"revenue with transfers={stats['revenue_with_transfers']}; "
+        f"expenditures with transfers={stats['expenditure_with_transfers']}; "
+        f"net={stats['net_with_transfers']}"
+    )
 
 
 @main.command("report")
