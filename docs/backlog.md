@@ -1,6 +1,6 @@
 # Project Backlog
 
-GitHub issue creation was not available through the connector at the time this backlog was created, so these are recorded as repo-tracked backlog items.
+GitHub issues are now available through the connector. This file remains as the repo-tracked milestone board and links to the live issues that track implementation work.
 
 ## Milestone: v0.1 reviewed packet workflow
 
@@ -27,6 +27,15 @@ Remaining:
 - [ ] Keep generated `data/` artifacts local unless explicitly promoted.
 - [ ] Commit or regenerate local review CSV artifacts for Fund 141 if they should be repo-tracked.
 
+## Active issues
+
+| Issue | Priority | Purpose |
+|---:|---|---|
+| #1 | High | Add subtotal-level reconciliation reports. |
+| #2 | High | Generate the first reviewed-funds intelligence report. |
+| #3 | Medium | Continue extraction with Fund 143. |
+| #4 | Medium | Improve correction replacement matching. |
+
 ## Backlog items
 
 ### Harden the reviewed-range workflow runner
@@ -43,7 +52,7 @@ Acceptance criteria:
 - [ ] Add documentation showing the preferred command path for reviewed ranges.
 - [ ] Add guardrails for missing page-review metadata and stale correction files.
 
-### Add subtotal-level reconciliation
+### Add subtotal-level reconciliation — issue #1
 
 Current reconciliation is fund-level. Fund 141 showed why page/group subtotal reconciliation should be automated: OCR misses were localizable through page, continuation-page, department, and major-section totals.
 
@@ -55,7 +64,23 @@ Acceptance criteria:
 - [ ] Output mismatch CSV.
 - [ ] Include page number, section, expected, actual, difference, and confidence.
 
-### Continue extraction with Fund 143
+### Generate first reviewed-funds intelligence report — issue #2
+
+Create a citizen-readable markdown report from reviewed funds 101, 116, 122, 131, and 141.
+
+Acceptance criteria:
+
+- [ ] Summarize reconciled totals by fund.
+- [ ] Compute budget-to-budget deltas.
+- [ ] Compute actual-to-budget deltas.
+- [ ] Add materiality thresholds.
+- [ ] Identify one-dollar and zero-dollar placeholders.
+- [ ] Identify grant/program lines appearing, disappearing, or materially changing.
+- [ ] Generate neutral review questions, not accusations.
+- [ ] Preserve source page references.
+- [ ] Include methodology and limitations.
+
+### Continue extraction with Fund 143 — issue #3
 
 Fund 141 General Purpose School is reconciled. Fund 143 begins on page 139.
 
@@ -67,6 +92,19 @@ Acceptance criteria:
 - [ ] Extract/enrich/classify Fund 143 rows.
 - [ ] Reconcile revenues and expenditures to summary lines.
 - [ ] Add corrections only where source review justifies them.
+- [ ] Add a checkpoint doc when reconciled.
+
+### Improve correction replacement matching — issue #4
+
+Fund 141 required one balancing correction because replacement matching did not catch one row cleanly.
+
+Acceptance criteria:
+
+- [ ] Review the correction row-key strategy.
+- [ ] Support replacement matching that tolerates OCR artifacts in non-target amount columns when page/account/label context is strong enough.
+- [ ] Detect unmatched replacement corrections and fail or warn loudly.
+- [ ] Include tests for successful replacement, failed replacement, and ambiguous replacement cases.
+- [ ] Document when to use add vs replace vs balancing correction rows.
 
 ### Build compensation summary output
 
@@ -78,18 +116,6 @@ Acceptance criteria:
 - [ ] Produce compensation summary by department/division where metadata supports it.
 - [ ] Preserve source page references.
 - [ ] Flag ambiguous compensation labels for review.
-
-### Add analysis outputs
-
-Begin turning normalized rows into intelligence.
-
-Acceptance criteria:
-
-- [ ] Compute budget-to-budget deltas.
-- [ ] Compute actual-to-budget deltas.
-- [ ] Add materiality thresholds.
-- [ ] Generate review questions for large or unclear changes.
-- [ ] Produce a citizen-readable markdown report.
 
 ### Decide raw public PDF storage policy
 
