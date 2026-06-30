@@ -7,7 +7,7 @@ Goal: establish the project shape and analysis discipline.
 - [x] Create repository scaffold.
 - [x] Write mission and methodology docs.
 - [x] Define initial data model.
-- [ ] Add sample input packet manifest.
+- [x] Add sample input packet manifest.
 - [ ] Add first fixture PDF or redacted page examples if appropriate.
 - [ ] Decide whether raw public PDFs should be committed, mirrored as releases, or stored externally.
 
@@ -15,11 +15,11 @@ Goal: establish the project shape and analysis discipline.
 
 Goal: know what we have before extracting anything.
 
-- [ ] Build `inspect-pdf` command.
-- [ ] Count pages.
-- [ ] Detect text layer vs scanned image pages.
-- [ ] Identify likely table pages.
-- [ ] Compute file hash.
+- [x] Build `inspect-pdf` command.
+- [x] Count pages.
+- [x] Detect text layer vs scanned image pages.
+- [x] Identify likely table pages.
+- [x] Compute file hash.
 - [ ] Create a packet manifest with title, meeting date, funds included, and document sections.
 
 Output: `data/processed/documents.csv` and `data/processed/pages.csv`.
