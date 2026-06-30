@@ -6,7 +6,7 @@ GitHub issue creation was not available through the connector at the time this b
 
 Goal: make the reviewed Weakley packet range reproducible from OCR text through corrected reconciliation.
 
-Status: mostly complete for pages 23-85.
+Status: mostly complete for pages 23-138. Funds 101, 116, 122, 131, and 141 reconcile to reviewed summary totals.
 
 Done:
 
@@ -15,53 +15,56 @@ Done:
 - Row classification.
 - OCR review queue.
 - Row correction overlay.
+- Reviewed-range workflow runner.
 - Per-fund reconciliation.
 - Checkpoint doc for pages 23-85.
+- Checkpoint doc for Fund 141 pages 86-138.
 
 Remaining:
 
 - [ ] Verify CI status for the checkpoint commits.
 - [ ] Refresh README quick-start commands for the corrected workflow.
 - [ ] Keep generated `data/` artifacts local unless explicitly promoted.
+- [ ] Commit or regenerate local review CSV artifacts for Fund 141 if they should be repo-tracked.
 
 ## Backlog items
 
-### Add a single runner command for reviewed packet ranges
+### Harden the reviewed-range workflow runner
 
-Create a command such as:
-
-    budget-audit run-packet-workflow ...
-
-It should run extraction, enrichment, classification, correction overlay, review queue, summary, and reconciliation for a configured page range.
+The initial `run-reviewed-range` command now runs extraction, enrichment, classification, optional correction overlay, review queue, summary, and reconciliation for configured reviewed ranges.
 
 Acceptance criteria:
 
-- [ ] Supports page range.
-- [ ] Supports page-review CSV.
-- [ ] Supports optional correction CSV.
-- [ ] Writes predictable output names.
-- [ ] Has unit tests for path planning and command behavior.
+- [x] Supports page range.
+- [x] Supports page-review CSV.
+- [x] Supports optional correction CSV.
+- [x] Writes predictable output names.
+- [x] Has unit tests for path planning and command behavior.
+- [ ] Add documentation showing the preferred command path for reviewed ranges.
+- [ ] Add guardrails for missing page-review metadata and stale correction files.
 
 ### Add subtotal-level reconciliation
 
-Current reconciliation is fund-level. Add page/group subtotal reconciliation so OCR misses are detected automatically.
+Current reconciliation is fund-level. Fund 141 showed why page/group subtotal reconciliation should be automated: OCR misses were localizable through page, continuation-page, department, and major-section totals.
 
 Acceptance criteria:
 
 - [ ] Extract subtotal and total lines from OCR text.
 - [ ] Compare page/group line-item totals to source subtotal lines.
+- [ ] Support continuation-page groups where totals appear on a later page.
 - [ ] Output mismatch CSV.
 - [ ] Include page number, section, expected, actual, difference, and confidence.
 
-### Extend extraction into Fund 141
+### Continue extraction with Fund 143
 
-Fund 141 General Purpose School begins on page 86.
+Fund 141 General Purpose School is reconciled. Fund 143 begins on page 139.
 
 Acceptance criteria:
 
-- [ ] Render/OCR the needed Fund 141 page range.
-- [ ] Create page-review metadata for Fund 141.
-- [ ] Extract/enrich/classify Fund 141 rows.
+- [ ] Identify the complete Fund 143 page range.
+- [ ] Render/OCR the needed Fund 143 pages.
+- [ ] Create page-review metadata for Fund 143.
+- [ ] Extract/enrich/classify Fund 143 rows.
 - [ ] Reconcile revenues and expenditures to summary lines.
 - [ ] Add corrections only where source review justifies them.
 
