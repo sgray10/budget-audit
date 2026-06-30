@@ -19,3 +19,9 @@ reports/
 .DS_Store
 .idea/
 .vscode/
+
+# Local source records and generated analysis artifacts
+data/raw/
+data/interim/
+data/processed/
+reports/
