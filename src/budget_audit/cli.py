@@ -223,11 +223,13 @@ def find_compensation_cmd(ocr_dir: Path, out_path: Path, document_id: str) -> No
 
 @main.command("extract-ocr-rows")
 @click.argument("ocr_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--pages", "page_spec", default=None, help="Optional pages to extract, e.g. '23-85'.")
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
 @click.option("--document-id", required=True)
-def extract_ocr_rows_cmd(ocr_dir: Path, out_path: Path, document_id: str) -> None:
+def extract_ocr_rows_cmd(ocr_dir: Path, page_spec: str | None, out_path: Path, document_id: str) -> None:
     """Extract likely budget table rows from OCR text files."""
-    count = extract_ocr_table_rows(ocr_dir, out_path, document_id)
+    pages = set(parse_page_spec(page_spec)) if page_spec is not None else None
+    count = extract_ocr_table_rows(ocr_dir, out_path, document_id, pages=pages)
     console.print(f"wrote {out_path} ({count} rows)")
 
 

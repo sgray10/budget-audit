@@ -1,0 +1,5 @@
+document_id,page_number,line_number,action,fund_number,section_hint,account,label,actual_24_25,budget_25_26,actual_25_26,budget_26_27,reason,raw_line
+weakley-fwm-2026-06-30,76,,replace,131,Fund 131 Highway revenues,40320,Bank Excise Tax,"11,800","11,000","7,777","11,000","Summary reconciliation implies OCR misread 11,000 as 41,000.","40320 Bank Excise Tax 11,800 11,000 7,777 41,000"
+weakley-fwm-2026-06-30,79,34,add,131,Fund 131 Highway expenditures,443,Road Signs - Name Signs,543,"2,500","1,949","2,500",OCR account included comma/code and extractor skipped row.,"443, RDSGN Road Signs - Name Signs 543 2,500 1,949 2,500"
+weakley-fwm-2026-06-30,79,36,add,131,Fund 131 Highway expenditures,499,Other Supplies & Materials - Guard Rails,0,500,153,500,OCR misread zero as QO and extractor skipped row.,499 Other Supplies & Materials - Guard Rails QO 500 153 500
+weakley-fwm-2026-06-30,83,11,add,131,Fund 131 Highway expenditures,210,Unemployment Compensation,"4,225","5,000",0,"5,000",OCR malformed actual_25_26 as parenthesis/brace and extractor skipped row.,"210 Unemployment Compensation 4,225 5,000 (} 5,000"
