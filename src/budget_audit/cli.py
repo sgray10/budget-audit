@@ -8,6 +8,7 @@ import click
 from rich.console import Console
 from rich.table import Table
 
+from budget_audit.corrections import apply_row_corrections
 from budget_audit.enrich import enrich_ocr_rows_with_page_review
 from budget_audit.extract import extract_tables, inspect_pdf, sha256_file
 from budget_audit.ocr import ocr_rendered_pages
@@ -279,6 +280,27 @@ def review_ocr_rows_cmd(rows_path: Path, out_path: Path) -> None:
     """Create a review queue for suspicious OCR-derived rows."""
     count = build_ocr_review_queue(rows_path, out_path)
     console.print(f"wrote {out_path} ({count} rows)")
+
+
+@main.command("apply-row-corrections")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--corrections",
+    "corrections_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+)
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+def apply_row_corrections_cmd(rows_path: Path, corrections_path: Path, out_path: Path) -> None:
+    """Apply manual row corrections to an extracted/classified OCR row CSV."""
+    stats = apply_row_corrections(rows_path, corrections_path, out_path)
+    console.print(
+        f"wrote {out_path} "
+        f"({stats['output_rows']} rows; "
+        f"{stats['replaced']} replaced; "
+        f"{stats['added']} added)"
+    )
+
 
 
 @main.command("normalize")

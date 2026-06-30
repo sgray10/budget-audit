@@ -8,7 +8,12 @@ CORRECTION_META_FIELDS = ["correction_action", "correction_reason", "correction_
 
 
 def row_key(row: dict[str, str]) -> tuple[str, str, str, str]:
-    return tuple(row.get(field, "") for field in ROW_KEY_FIELDS)
+    return (
+        row.get("document_id", ""),
+        row.get("page_number", ""),
+        row.get("account", ""),
+        row.get("label", ""),
+    )
 
 
 def apply_row_corrections(rows_path: Path, corrections_path: Path, out_path: Path) -> dict[str, int]:
