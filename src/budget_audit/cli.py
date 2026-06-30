@@ -14,6 +14,7 @@ from budget_audit.ocr import ocr_rendered_pages
 from budget_audit.ocr_reports import find_compensation_hits
 from budget_audit.ocr_table_rows import extract_ocr_table_rows
 from budget_audit.render import parse_page_spec, render_pdf_pages
+from budget_audit.review import build_ocr_review_queue
 from budget_audit.row_classify import classify_ocr_rows
 from budget_audit.summarize import summarize_classified_ocr_rows
 
@@ -272,6 +273,16 @@ def summarize_ocr_rows_cmd(rows_path: Path, out_dir: Path) -> None:
         f"{stats['unparsed_amounts']} unparsed amounts"
     )
     console.print(f"wrote summaries to {out_dir}")
+
+
+
+@main.command("review-ocr-rows")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+def review_ocr_rows_cmd(rows_path: Path, out_path: Path) -> None:
+    """Create a review queue for suspicious OCR-derived rows."""
+    count = build_ocr_review_queue(rows_path, out_path)
+    console.print(f"wrote {out_path} ({count} rows)")
 
 
 
