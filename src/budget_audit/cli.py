@@ -19,6 +19,7 @@ from budget_audit.render import parse_page_spec, render_pdf_pages
 from budget_audit.review import build_ocr_review_queue
 from budget_audit.row_classify import classify_ocr_rows
 from budget_audit.summarize import summarize_classified_ocr_rows
+from budget_audit.workflow import parse_fund_list, run_reviewed_range_workflow
 
 console = Console()
 
@@ -299,6 +300,58 @@ def apply_row_corrections_cmd(rows_path: Path, corrections_path: Path, out_path:
         f"({stats['output_rows']} rows; "
         f"{stats['replaced']} replaced; "
         f"{stats['added']} added)"
+    )
+
+
+
+@main.command("run-reviewed-range")
+@click.argument("ocr_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--pages", "page_spec", required=True, help="Pages to process, e.g. '23-85'.")
+@click.option("--document-id", required=True)
+@click.option(
+    "--page-review",
+    "page_review_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+)
+@click.option(
+    "--corrections",
+    "corrections_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+)
+@click.option("--out-dir", "out_dir", type=click.Path(path_type=Path), required=True)
+@click.option("--funds", "fund_spec", default="", help="Comma-separated funds to reconcile, e.g. '101,116,122,131'.")
+def run_reviewed_range_cmd(
+    ocr_dir: Path,
+    page_spec: str,
+    document_id: str,
+    page_review_path: Path,
+    corrections_path: Path | None,
+    out_dir: Path,
+    fund_spec: str,
+) -> None:
+    """Run the reviewed OCR range workflow end to end."""
+    pages = set(parse_page_spec(page_spec))
+    funds = parse_fund_list(fund_spec)
+    stats = run_reviewed_range_workflow(
+        ocr_dir,
+        page_spec=page_spec,
+        pages=pages,
+        document_id=document_id,
+        page_review_path=page_review_path,
+        corrections_path=corrections_path,
+        out_dir=out_dir,
+        funds=funds,
+    )
+    console.print(
+        f"workflow complete: "
+        f"{stats['raw_rows']} raw rows; "
+        f"{stats['classified_rows']} classified rows; "
+        f"{stats['replaced_rows']} replaced; "
+        f"{stats['added_rows']} added; "
+        f"{stats['review_rows']} review rows; "
+        f"{stats['reconciled_funds']} funds reconciled"
     )
 
 
