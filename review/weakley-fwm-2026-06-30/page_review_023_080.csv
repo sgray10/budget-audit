@@ -46,14 +46,14 @@ weakley-fwm-2026-06-30,66,Fund 101 General Fund expenditures - other general gov
 weakley-fwm-2026-06-30,67,Fund 101 General Fund expenditures - other general government and transfers,budget_table,101,General,Other General Government / Transfers,,true,true,medium,Coarse first-pass page metadata; refine after visual/OCR review.
 weakley-fwm-2026-06-30,68,Fund 101 General Fund expenditures - other general government and transfers,budget_table,101,General,Other General Government / Transfers,,true,false,medium,Coarse first-pass page metadata; refine after visual/OCR review.
 weakley-fwm-2026-06-30,69,Fund 101 General Fund summary,summary,101,General,Summary,,true,false,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,70,Fund 116 Solid Waste/Sanitation,budget_table,116,Solid Waste/Sanitation,Solid Waste/Sanitation,,true,false,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,71,Fund 116 Solid Waste/Sanitation,budget_table,116,Solid Waste/Sanitation,Solid Waste/Sanitation,,true,true,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,72,Fund 116 Solid Waste/Sanitation,budget_table,116,Solid Waste/Sanitation,Solid Waste/Sanitation,,true,false,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,73,Fund 122 Drug Enforcement,budget_table,122,Drug Enforcement,Drug Enforcement,,true,true,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,74,Fund 122 Drug Enforcement,budget_table,122,Drug Enforcement,Drug Enforcement,,true,false,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,75,Fund 122 Drug Enforcement,budget_table,122,Drug Enforcement,Drug Enforcement,,true,false,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,76,Fund 131 Highway/Public Works,budget_table,131,Highway/Public Works,Highway/Public Works,,true,false,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,77,Fund 131 Highway/Public Works,budget_table,131,Highway/Public Works,Highway/Public Works,,true,false,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,78,Fund 131 Highway/Public Works,budget_table,131,Highway/Public Works,Highway/Public Works,,true,true,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,79,Fund 131 Highway/Public Works,budget_table,131,Highway/Public Works,Highway/Public Works,,true,true,medium,Coarse first-pass page metadata; refine after visual/OCR review.
-weakley-fwm-2026-06-30,80,Fund 131 Highway/Public Works,budget_table,131,Highway/Public Works,Highway/Public Works,,true,true,medium,Coarse first-pass page metadata; refine after visual/OCR review.
+weakley-fwm-2026-06-30,70,Fund 116 Solid Waste/Sanitation revenues,budget_table,116,Solid Waste/Sanitation,Revenue,,true,false,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,71,Fund 116 Solid Waste/Sanitation expenditures,budget_table,116,Solid Waste/Sanitation,Solid Waste/Sanitation,,true,true,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,72,Fund 116 Solid Waste/Sanitation summary,summary,116,Solid Waste/Sanitation,Summary,,true,false,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,73,Fund 122 Drug Enforcement revenues,budget_table,122,Drug Enforcement,Revenue,Other General Government - Drug Enforcement,true,false,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,74,Fund 122 Drug Enforcement expenditures,budget_table,122,Drug Enforcement,Drug Enforcement,,true,false,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,75,Fund 122 Drug Enforcement summary,summary,122,Drug Enforcement,Summary,,true,false,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,76,Fund 131 Highway revenues,budget_table,131,Highway,Revenue,,true,false,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,77,Fund 131 Highway revenues,budget_table,131,Highway,Revenue,,true,false,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,78,Fund 131 Highway expenditures,budget_table,131,Highway,Highway,,true,true,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,79,Fund 131 Highway expenditures,budget_table,131,Highway,Highway,Highway & Bridge Maintenance,true,true,high,Updated from OCR header scan.
+weakley-fwm-2026-06-30,80,Fund 131 Highway expenditures,budget_table,131,Highway,Highway,,true,true,high,Updated from OCR header scan.
