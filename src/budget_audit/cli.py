@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from budget_audit.extract import extract_tables, inspect_pdf, sha256_file
+from budget_audit.render import parse_page_spec, render_pdf_pages
 
 console = Console()
 
@@ -168,6 +169,22 @@ def extract_tables_cmd(pdf_path: Path, out_dir: Path) -> None:
         console.print(f"wrote {out_path}")
 
     console.print(f"extracted {len(tables)} tables")
+
+
+@main.command("render-pages")
+@click.argument("pdf_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--pages", "page_spec", required=True, help="Pages to render, e.g. '3,6-12,23'.")
+@click.option("--out", "out_dir", type=click.Path(path_type=Path), required=True)
+@click.option("--dpi", default=200, show_default=True, type=int)
+def render_pages_cmd(pdf_path: Path, page_spec: str, out_dir: Path, dpi: int) -> None:
+    """Render selected PDF pages to PNG files for visual review or OCR."""
+    pages = parse_page_spec(page_spec)
+    rendered = render_pdf_pages(pdf_path, out_dir, pages, dpi=dpi)
+
+    for page in rendered:
+        console.print(f"rendered page {page.page_number} -> {page.image_path}")
+    console.print(f"rendered {len(rendered)} pages")
+
 
 
 @main.command("normalize")

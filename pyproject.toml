@@ -17,6 +17,7 @@ dependencies = [
   "pandas>=2.2",
   "pydantic>=2.7",
   "pdfplumber>=0.11",
+  "pypdfium2>=5.9",
   "python-dateutil>=2.9",
   "PyYAML>=6.0",
   "rich>=13.7"
@@ -44,6 +45,6 @@ line-length = 100
 src = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 packages = ["budget_audit"]
