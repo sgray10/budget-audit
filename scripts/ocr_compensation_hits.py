@@ -11,11 +11,18 @@ TERMS_RE = re.compile(
 
 LINE_RE = re.compile(
     r"^\s*(?P<account>\d{3,5})\s+(?P<label>.*?)\s+"
-    r"(?P<actual_24_25>[\d,§().-]+)\s+"
-    r"(?P<budget_25_26>[\d,§().-]+)\s+"
-    r"(?P<actual_25_26>[\d,§().-]+)\s+"
-    r"(?P<budget_26_27>[\d,§().-]+)\s*$"
+    r"(?P<actual_24_25>[\d,§().-]+(?:\s+[\d,§().-]+)*)\s+"
+    r"(?P<budget_25_26>[\d,§().-]+(?:\s+[\d,§().-]+)*)\s+"
+    r"(?P<actual_25_26>[\d,§().-]+(?:\s+[\d,§().-]+)*)\s+"
+    r"(?P<budget_26_27>[\d,§().-]+(?:\s+[\d,§().-]+)*)\s*$"
 )
+
+
+def clean_ocr_amount(value: str) -> str:
+    """Clean common OCR artifacts in amount fields."""
+    cleaned = value.replace("§", "5")
+    cleaned = re.sub(r"\s+", "", cleaned)
+    return cleaned
 
 ocr_dir = Path("data/interim/ocr")
 out_path = Path("data/processed/compensation_ocr_hits.csv")
@@ -45,7 +52,15 @@ for text_path in sorted(ocr_dir.glob("page-*.txt")):
         }
 
         if match:
-            row.update(match.groupdict())
+            parsed = match.groupdict()
+            for amount_field in [
+                "actual_24_25",
+                "budget_25_26",
+                "actual_25_26",
+                "budget_26_27",
+            ]:
+                parsed[amount_field] = clean_ocr_amount(parsed[amount_field])
+            row.update(parsed)
             row["parse_status"] = "parsed"
 
         rows.append(row)
