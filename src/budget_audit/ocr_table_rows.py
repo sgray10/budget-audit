@@ -43,6 +43,7 @@ def extract_ocr_table_rows(
     ocr_dir: Path,
     out_path: Path,
     document_id: str,
+    pages: set[int] | None = None,
 ) -> int:
     """Extract likely OCR budget table rows into a CSV review file."""
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -50,6 +51,9 @@ def extract_ocr_table_rows(
 
     for text_path in sorted(ocr_dir.glob("page-*.txt")):
         page_number = int(text_path.stem.removeprefix("page-"))
+        if pages is not None and page_number not in pages:
+            continue
+
         lines = text_path.read_text(encoding="utf-8").splitlines()
 
         current_context = ""
