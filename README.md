@@ -86,3 +86,20 @@ budget-audit report data/processed/line_items.csv --out reports/weakley-fwm-2026
 ## Current status
 
 Initial repository scaffold. Core implementation is intentionally minimal until we validate source formats and the analysis workflow against real packets.
+
+## Current Weakley County OCR workflow
+
+The current end-to-end OCR workflow for the Weakley County Finance, Ways, and Means packet is documented here:
+
+- `docs/weakley-fwm-2026-06-30-workflow.md`
+
+Current pipeline stages:
+
+1. Render scanned PDF pages to images.
+2. OCR rendered pages.
+3. Extract likely budget table rows.
+4. Enrich rows with page-review metadata.
+5. Classify rows by row type and category.
+6. Summarize classified OCR rows by fund, section, and compensation category.
+
+CI runs `pytest`, `ruff check .`, and `mypy .` on pushes and pull requests to `main`.
