@@ -14,6 +14,7 @@ from budget_audit.ocr import ocr_rendered_pages
 from budget_audit.ocr_reports import find_compensation_hits
 from budget_audit.ocr_table_rows import extract_ocr_table_rows
 from budget_audit.render import parse_page_spec, render_pdf_pages
+from budget_audit.row_classify import classify_ocr_rows
 
 console = Console()
 
@@ -243,6 +244,16 @@ def extract_ocr_rows_cmd(ocr_dir: Path, out_path: Path, document_id: str) -> Non
 def enrich_ocr_rows_cmd(rows_path: Path, page_review_path: Path, out_path: Path) -> None:
     """Enrich extracted OCR rows with page-review metadata."""
     count = enrich_ocr_rows_with_page_review(rows_path, page_review_path, out_path)
+    console.print(f"wrote {out_path} ({count} rows)")
+
+
+
+@main.command("classify-ocr-rows")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+def classify_ocr_rows_cmd(rows_path: Path, out_path: Path) -> None:
+    """Classify extracted/enriched OCR rows by row type and category."""
+    count = classify_ocr_rows(rows_path, out_path)
     console.print(f"wrote {out_path} ({count} rows)")
 
 
