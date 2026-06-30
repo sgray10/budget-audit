@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+import hashlib
 from pathlib import Path
 
 import pdfplumber
@@ -23,6 +24,15 @@ class PageInspection:
     has_text_layer: bool
     text_char_count: int
     likely_table: bool
+
+
+def sha256_file(path: Path) -> str:
+    """Return the SHA-256 digest for a source file."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def inspect_pdf(path: Path) -> list[PageInspection]:
