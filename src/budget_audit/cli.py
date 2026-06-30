@@ -10,6 +10,7 @@ from rich.table import Table
 
 from budget_audit.extract import extract_tables, inspect_pdf, sha256_file
 from budget_audit.ocr import ocr_rendered_pages
+from budget_audit.ocr_reports import find_compensation_hits
 from budget_audit.render import parse_page_spec, render_pdf_pages
 
 console = Console()
@@ -203,6 +204,17 @@ def ocr_pages_cmd(rendered_dir: Path, page_spec: str, out_dir: Path) -> None:
             f"({result.text_char_count} chars)"
         )
     console.print(f"ocr'd {len(results)} pages")
+
+
+
+@main.command("find-compensation")
+@click.argument("ocr_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+@click.option("--document-id", required=True)
+def find_compensation_cmd(ocr_dir: Path, out_path: Path, document_id: str) -> None:
+    """Find compensation-related OCR lines and write a CSV report."""
+    count = find_compensation_hits(ocr_dir, out_path, document_id)
+    console.print(f"wrote {out_path} ({count} rows)")
 
 
 
