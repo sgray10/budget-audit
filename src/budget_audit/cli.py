@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from budget_audit.extract import extract_tables, inspect_pdf, sha256_file
+from budget_audit.ocr import ocr_rendered_pages
 from budget_audit.render import parse_page_spec, render_pdf_pages
 
 console = Console()
@@ -184,6 +185,24 @@ def render_pages_cmd(pdf_path: Path, page_spec: str, out_dir: Path, dpi: int) ->
     for page in rendered:
         console.print(f"rendered page {page.page_number} -> {page.image_path}")
     console.print(f"rendered {len(rendered)} pages")
+
+
+
+@main.command("ocr-pages")
+@click.argument("rendered_dir", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--pages", "page_spec", required=True, help="Pages to OCR, e.g. '23,44-50'.")
+@click.option("--out", "out_dir", type=click.Path(path_type=Path), required=True)
+def ocr_pages_cmd(rendered_dir: Path, page_spec: str, out_dir: Path) -> None:
+    """OCR selected rendered page images to text files."""
+    pages = parse_page_spec(page_spec)
+    results = ocr_rendered_pages(rendered_dir, out_dir, pages)
+
+    for result in results:
+        console.print(
+            f"ocr page {result.page_number} -> {result.text_path} "
+            f"({result.text_char_count} chars)"
+        )
+    console.print(f"ocr'd {len(results)} pages")
 
 
 
