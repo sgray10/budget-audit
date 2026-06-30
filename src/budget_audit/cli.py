@@ -15,6 +15,7 @@ from budget_audit.ocr_reports import find_compensation_hits
 from budget_audit.ocr_table_rows import extract_ocr_table_rows
 from budget_audit.render import parse_page_spec, render_pdf_pages
 from budget_audit.row_classify import classify_ocr_rows
+from budget_audit.summarize import summarize_classified_ocr_rows
 
 console = Console()
 
@@ -255,6 +256,22 @@ def classify_ocr_rows_cmd(rows_path: Path, out_path: Path) -> None:
     """Classify extracted/enriched OCR rows by row type and category."""
     count = classify_ocr_rows(rows_path, out_path)
     console.print(f"wrote {out_path} ({count} rows)")
+
+
+
+@main.command("summarize-ocr-rows")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--out-dir", "out_dir", type=click.Path(path_type=Path), required=True)
+def summarize_ocr_rows_cmd(rows_path: Path, out_dir: Path) -> None:
+    """Summarize classified OCR budget rows."""
+    stats = summarize_classified_ocr_rows(rows_path, out_dir)
+    console.print(
+        "summarized "
+        f"{stats['line_rows']} line rows; "
+        f"excluded {stats['non_line_rows']} non-line rows; "
+        f"{stats['unparsed_amounts']} unparsed amounts"
+    )
+    console.print(f"wrote summaries to {out_dir}")
 
 
 
