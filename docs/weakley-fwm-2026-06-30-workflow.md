@@ -47,6 +47,11 @@ Summarize classified rows:
     budget-audit summarize-ocr-rows data/processed/ocr_table_rows_classified.csv \
       --out-dir data/processed
 
+Create an OCR review queue:
+
+    budget-audit review-ocr-rows data/processed/ocr_table_rows_classified.csv \
+      --out data/processed/ocr_review_queue.csv
+
 ## Current extraction checkpoint
 
 As of the current OCR workflow:
@@ -57,6 +62,7 @@ As of the current OCR workflow:
 | Classified line items | 823 |
 | Excluded non-line rows | 2 |
 | Unparsed `budget_26_27` amounts | 0 |
+| OCR review queue rows | 2 |
 
 ## Current summary by fund and budget side
 
@@ -89,3 +95,13 @@ The current summaries are OCR-derived and should be treated as reviewable workin
 2. Convert prototype scripts into stable CLI commands or remove them after parity is confirmed.
 3. Add tests for OCR row extraction, enrichment, classification, and summary helpers.
 4. Add CI so pushes run pytest, ruff, and mypy automatically.
+
+
+## Current OCR review queue
+
+Current flagged rows after OCR cleanup:
+
+| Page | Account | Label | Reason | Note |
+|---:|---:|---|---|---|
+| 49 | 212 | Medicare Liability | suspicious raw character | Raw OCR includes `§22`; likely requires visual confirmation. |
+| 66 | 316 | OPIA West Tennessee United Way | suspicious budget_25_26 | Raw OCR includes a stray `.` amount artifact. |
