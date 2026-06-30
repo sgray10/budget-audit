@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import csv
+from datetime import date
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.table import Table
 
-from budget_audit.extract import extract_tables, inspect_pdf
+from budget_audit.extract import extract_tables, inspect_pdf, sha256_file
 
 console = Console()
 
@@ -28,15 +30,54 @@ def init_project(path: Path) -> None:
 
 @main.command("inspect-pdf")
 @click.argument("pdf_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
-def inspect_pdf_cmd(pdf_path: Path) -> None:
+@click.option("--document-id", default=None, help="Stable local document id. Defaults to file stem.")
+@click.option("--title", default=None, help="Human-readable document title. Defaults to file stem.")
+@click.option("--jurisdiction", default="", help="Jurisdiction, for example 'Weakley County, TN'.")
+@click.option("--body", default="", help="Public body, committee, or department.")
+@click.option("--meeting-date", default=None, help="Meeting date in YYYY-MM-DD format, if applicable.")
+@click.option("--fiscal-year", default="", help="Fiscal year label, if applicable.")
+@click.option("--source-url", default="", help="Public source URL, if available.")
+@click.option(
+    "--documents-out",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Optional CSV path for document-level inventory output.",
+)
+@click.option(
+    "--pages-out",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Optional CSV path for page-level inventory output.",
+)
+def inspect_pdf_cmd(
+    pdf_path: Path,
+    document_id: str | None,
+    title: str | None,
+    jurisdiction: str,
+    body: str,
+    meeting_date: str | None,
+    fiscal_year: str,
+    source_url: str,
+    documents_out: Path | None,
+    pages_out: Path | None,
+) -> None:
     """Inspect a PDF for text layers and likely tables."""
+    document_id = document_id or pdf_path.stem
+    title = title or pdf_path.stem
+    inspections = inspect_pdf(pdf_path)
+    file_hash = sha256_file(pdf_path)
+
+    if meeting_date is not None:
+        # Validate early so bad metadata does not enter inventory CSVs.
+        date.fromisoformat(meeting_date)
+
     table = Table(title=str(pdf_path))
     table.add_column("Page", justify="right")
     table.add_column("Text Layer")
     table.add_column("Chars", justify="right")
     table.add_column("Likely Table")
 
-    for page in inspect_pdf(pdf_path):
+    for page in inspections:
         table.add_row(
             str(page.page_number),
             "yes" if page.has_text_layer else "no",
@@ -45,14 +86,77 @@ def inspect_pdf_cmd(pdf_path: Path) -> None:
         )
     console.print(table)
 
+    if documents_out is not None:
+        documents_out.parent.mkdir(parents=True, exist_ok=True)
+        with documents_out.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=[
+                    "document_id",
+                    "title",
+                    "jurisdiction",
+                    "body",
+                    "meeting_date",
+                    "fiscal_year",
+                    "source_url",
+                    "file_path",
+                    "sha256",
+                    "page_count",
+                ],
+            )
+            writer.writeheader()
+            writer.writerow(
+                {
+                    "document_id": document_id,
+                    "title": title,
+                    "jurisdiction": jurisdiction,
+                    "body": body,
+                    "meeting_date": meeting_date or "",
+                    "fiscal_year": fiscal_year,
+                    "source_url": source_url,
+                    "file_path": str(pdf_path),
+                    "sha256": file_hash,
+                    "page_count": len(inspections),
+                }
+            )
+        console.print(f"wrote {documents_out}")
+
+    if pages_out is not None:
+        pages_out.parent.mkdir(parents=True, exist_ok=True)
+        with pages_out.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=[
+                    "document_id",
+                    "page_number",
+                    "has_text_layer",
+                    "text_char_count",
+                    "likely_table",
+                    "ocr_required",
+                    "extraction_status",
+                ],
+            )
+            writer.writeheader()
+            for page in inspections:
+                writer.writerow(
+                    {
+                        "document_id": document_id,
+                        "page_number": page.page_number,
+                        "has_text_layer": page.has_text_layer,
+                        "text_char_count": page.text_char_count,
+                        "likely_table": page.likely_table,
+                        "ocr_required": not page.has_text_layer,
+                        "extraction_status": "pending",
+                    }
+                )
+        console.print(f"wrote {pages_out}")
+
 
 @main.command("extract-tables")
 @click.argument("pdf_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option("--out", "out_dir", type=click.Path(path_type=Path), required=True)
 def extract_tables_cmd(pdf_path: Path, out_dir: Path) -> None:
     """Extract PDF tables to CSV files."""
-    import csv
-
     out_dir.mkdir(parents=True, exist_ok=True)
     tables = extract_tables(pdf_path)
     for extracted in tables:
