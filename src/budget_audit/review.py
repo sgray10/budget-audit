@@ -24,7 +24,14 @@ def account_looks_suspicious(account: str) -> bool:
     return len(account) not in {3, 4, 5}
 
 
+def row_has_reviewed_correction(row: dict[str, str]) -> bool:
+    return row.get("correction_action") in {"add", "replace"}
+
+
 def review_reasons(row: dict[str, str]) -> list[str]:
+    if row_has_reviewed_correction(row):
+        return []
+
     reasons: list[str] = []
 
     account = row.get("account", "")
