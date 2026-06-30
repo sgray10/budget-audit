@@ -105,3 +105,27 @@ Current flagged rows after OCR cleanup:
 |---:|---:|---|---|---|
 | 49 | 212 | Medicare Liability | suspicious raw character | Raw OCR includes `§22`; likely requires visual confirmation. |
 | 66 | 316 | OPIA West Tennessee United Way | suspicious budget_25_26 | Raw OCR includes a stray `.` amount artifact. |
+
+## Fund 101 reconciliation checkpoint
+
+The classified OCR rows can be reconciled with:
+
+    budget-audit reconcile data/processed/ocr_table_rows_classified.csv \
+      --fund 101 \
+      --out data/processed/reconcile_fund_101.csv
+
+Current Fund 101 reconciliation:
+
+| Metric | Value |
+|---|---:|
+| Revenue line items | 14,013,957 |
+| Transfers in | 44,027 |
+| Revenue with transfers | 14,057,984 |
+| Expenditure line items | 14,062,391 |
+| Transfers out | 0 |
+| Expenditure with transfers | 14,062,391 |
+| Net line items | -48,434 |
+| Net with transfers | -4,407 |
+| Unparsed amounts | 0 |
+
+This suggests Fund 101 is close to balanced in the OCR-derived working dataset, with a net difference of -4,407 after transfers.
