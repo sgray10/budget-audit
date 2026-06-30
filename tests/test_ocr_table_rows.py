@@ -20,3 +20,7 @@ def test_classify_raw_line_header_or_context() -> None:
 
 def test_classify_raw_line_account_group() -> None:
     assert classify_raw_line("40100") == "account_group"
+
+
+def test_clean_ocr_amount_replaces_decimal_thousands_artifact() -> None:
+    assert clean_ocr_amount("4.037") == "4,037"

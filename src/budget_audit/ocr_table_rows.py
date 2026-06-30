@@ -21,6 +21,7 @@ HEADER_HINT_RE = re.compile(
 def clean_ocr_amount(value: str) -> str:
     """Clean common OCR artifacts in amount fields."""
     cleaned = value.replace("§", "5")
+    cleaned = re.sub(r"(?<=\d)\.(?=\d{3}\b)", ",", cleaned)
     cleaned = re.sub(r"\s+", "", cleaned)
     return cleaned
 
