@@ -8,20 +8,15 @@ __pycache__/
 .venv/
 venv/
 
-# Local data and reports
+# Local source records and generated working data.
 # Raw records may include large files or records not intended for git.
+# reports/ is intentionally NOT ignored -- generated citizen-readable reports
+# are the project's public-facing output and are meant to be committed.
 data/raw/
 data/interim/
 data/processed/
-reports/
 
 # OS/editor
 .DS_Store
 .idea/
 .vscode/
-
-# Local source records and generated analysis artifacts
-data/raw/
-data/interim/
-data/processed/
-reports/

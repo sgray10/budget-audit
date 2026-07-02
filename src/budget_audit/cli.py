@@ -2,26 +2,44 @@ from __future__ import annotations
 
 import csv
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 
 import click
 from rich.console import Console
 from rich.table import Table
 
+from budget_audit.analyze import MaterialityThreshold, analyze_deltas
+from budget_audit.compensation import analyze_compensation
+from budget_audit.consolidate import consolidate_reviewed_rows
 from budget_audit.corrections import apply_row_corrections
 from budget_audit.enrich import enrich_ocr_rows_with_page_review
 from budget_audit.extract import extract_tables, inspect_pdf, sha256_file
+from budget_audit.findings import build_findings
 from budget_audit.ocr import ocr_rendered_pages
 from budget_audit.ocr_reports import find_compensation_hits
 from budget_audit.ocr_table_rows import extract_ocr_table_rows
 from budget_audit.reconcile import reconcile_fund
 from budget_audit.render import parse_page_spec, render_pdf_pages
+from budget_audit.report import load_reconcile_summary, render_report
+from budget_audit.report_workflow import run_report_workflow
 from budget_audit.review import build_ocr_review_queue
 from budget_audit.row_classify import classify_ocr_rows
 from budget_audit.summarize import summarize_classified_ocr_rows
 from budget_audit.workflow import parse_fund_list, run_reviewed_range_workflow
 
 console = Console()
+
+
+def _parse_reconcile_specs(specs: tuple[str, ...]) -> dict[str, Path]:
+    """Parse repeatable '--reconcile fund=path' options into a fund->path map."""
+    reconcile_paths: dict[str, Path] = {}
+    for spec in specs:
+        fund, sep, path_str = spec.partition("=")
+        if not sep:
+            raise click.BadParameter(f"expected 'fund=path', got {spec!r}")
+        reconcile_paths[fund.strip()] = Path(path_str)
+    return reconcile_paths
 
 
 @click.group()
@@ -380,12 +398,161 @@ def reconcile_cmd(rows_path: Path, fund_number: str, out_path: Path) -> None:
     )
 
 
-@main.command("report")
-@click.argument("input_path", type=click.Path(exists=True, path_type=Path))
+@main.command("consolidate-reviewed-rows")
+@click.argument(
+    "rows_paths",
+    nargs=-1,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+)
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
-def report_cmd(input_path: Path, out_path: Path) -> None:
-    """Placeholder for markdown report generation."""
-    console.print(f"TODO: report {input_path} -> {out_path}")
+def consolidate_reviewed_rows_cmd(rows_paths: tuple[Path, ...], out_path: Path) -> None:
+    """Concatenate disjoint reviewed/corrected row CSVs into one canonical dataset."""
+    count = consolidate_reviewed_rows(list(rows_paths), out_path)
+    console.print(f"wrote {out_path} ({count} rows)")
+
+
+@main.command("analyze-deltas")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--out-dir", "out_dir", type=click.Path(path_type=Path), required=True)
+@click.option("--min-absolute", default=5000, show_default=True, type=int, help="Minimum absolute-dollar delta to flag as material.")
+@click.option("--min-percent", default=15, show_default=True, type=int, help="Minimum percent delta to flag as material.")
+@click.option(
+    "--require-both/--either",
+    "require_both",
+    default=True,
+    show_default=True,
+    help="Require both absolute and percent thresholds to flag material, or trigger on either.",
+)
+def analyze_deltas_cmd(
+    rows_path: Path, out_dir: Path, min_absolute: int, min_percent: int, require_both: bool
+) -> None:
+    """Compute year-over-year deltas per line item and flag material changes."""
+    threshold = MaterialityThreshold(
+        min_absolute=Decimal(min_absolute), min_percent=Decimal(min_percent), require_both=require_both
+    )
+    stats = analyze_deltas(rows_path, out_dir, threshold)
+    console.print(
+        f"analyzed {stats['line_items']} line items; "
+        f"{stats['material_rows']} material transitions; "
+        f"{stats['new_line_rows']} new; {stats['eliminated_line_rows']} eliminated"
+    )
+    console.print(f"wrote delta CSVs to {out_dir}")
+
+
+@main.command("analyze-compensation")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--out-dir", "out_dir", type=click.Path(path_type=Path), required=True)
+def analyze_compensation_cmd(rows_path: Path, out_dir: Path) -> None:
+    """Roll up compensation-related rows and flag aggregate vs needs-review labels."""
+    stats = analyze_compensation(rows_path, out_dir)
+    console.print(
+        f"analyzed {stats['compensation_rows']} compensation rows; "
+        f"{stats['needs_review_rows']} needs_review; {stats['aggregate_rows']} aggregate"
+    )
+    console.print(f"wrote compensation CSVs to {out_dir}")
+
+
+@main.command("build-findings")
+@click.argument("deltas_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--compensation-flags",
+    "compensation_flags_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+)
+@click.option(
+    "--reconcile",
+    "reconcile_specs",
+    multiple=True,
+    required=True,
+    help="fund=path pairs, e.g. --reconcile 101=data/processed/reconcile_fund_101_023_085.csv (repeatable).",
+)
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+def build_findings_cmd(
+    deltas_path: Path, compensation_flags_path: Path, reconcile_specs: tuple[str, ...], out_path: Path
+) -> None:
+    """Assemble delta, compensation, and reconciliation findings into one findings CSV."""
+    reconcile_paths = _parse_reconcile_specs(reconcile_specs)
+    stats = build_findings(deltas_path, compensation_flags_path, reconcile_paths, out_path)
+    console.print(
+        f"wrote {out_path}: {stats['delta_findings']} delta, "
+        f"{stats['compensation_findings']} compensation, "
+        f"{stats['reconciliation_findings']} reconciliation findings "
+        f"({stats['total_findings']} total)"
+    )
+
+
+@main.command("report")
+@click.argument("findings_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--reconcile",
+    "reconcile_specs",
+    multiple=True,
+    required=True,
+    help="fund=path pairs for the reconciliation summary table, repeatable.",
+)
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+def report_cmd(findings_path: Path, reconcile_specs: tuple[str, ...], out_path: Path) -> None:
+    """Render a citizen-readable markdown report from findings and reconciliation summaries."""
+    reconcile_paths = _parse_reconcile_specs(reconcile_specs)
+    summaries = [load_reconcile_summary(fund, path) for fund, path in sorted(reconcile_paths.items())]
+    render_report(findings_path, summaries, out_path)
+    console.print(f"wrote {out_path}")
+
+
+@main.command("generate-report")
+@click.option(
+    "--rows",
+    "row_paths",
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    required=True,
+    help="Reviewed/corrected row CSVs to consolidate (repeatable, order preserved).",
+)
+@click.option(
+    "--reconcile",
+    "reconcile_specs",
+    multiple=True,
+    required=True,
+    help="fund=path pairs, repeatable.",
+)
+@click.option("--out-dir", "out_dir", type=click.Path(path_type=Path), required=True)
+@click.option("--reports-dir", "reports_dir", type=click.Path(path_type=Path), default=Path("reports"), show_default=True)
+@click.option("--report-filename", default="weakley-fwm-2026-06-30.md", show_default=True)
+@click.option("--min-absolute", default=5000, show_default=True, type=int)
+@click.option("--min-percent", default=15, show_default=True, type=int)
+@click.option(
+    "--require-both/--either",
+    "require_both",
+    default=True,
+    show_default=True,
+    help="Require both absolute and percent thresholds to flag material, or trigger on either.",
+)
+def generate_report_cmd(
+    row_paths: tuple[Path, ...],
+    reconcile_specs: tuple[str, ...],
+    out_dir: Path,
+    reports_dir: Path,
+    report_filename: str,
+    min_absolute: int,
+    min_percent: int,
+    require_both: bool,
+) -> None:
+    """Run consolidate -> analyze-deltas -> analyze-compensation -> build-findings -> report end to end."""
+    reconcile_paths = _parse_reconcile_specs(reconcile_specs)
+    threshold = MaterialityThreshold(
+        min_absolute=Decimal(min_absolute), min_percent=Decimal(min_percent), require_both=require_both
+    )
+    stats = run_report_workflow(list(row_paths), reconcile_paths, out_dir, reports_dir, report_filename, threshold)
+    console.print(
+        f"report complete: {stats['consolidated_rows']} rows consolidated; "
+        f"{stats['material_rows']} material deltas; {stats['new_line_rows']} new; "
+        f"{stats['eliminated_line_rows']} eliminated; "
+        f"{stats['compensation_needs_review']} compensation rows need review; "
+        f"{stats['total_findings']} total findings"
+    )
+    console.print(f"wrote report to {reports_dir / report_filename}")
 
 
 if __name__ == "__main__":

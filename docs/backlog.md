@@ -74,10 +74,12 @@ Use row classification and labels to summarize salary and benefit-related lines.
 
 Acceptance criteria:
 
-- [ ] Produce compensation summary by fund.
-- [ ] Produce compensation summary by department/division where metadata supports it.
-- [ ] Preserve source page references.
-- [ ] Flag ambiguous compensation labels for review.
+- [x] Produce compensation summary by fund.
+- [x] Produce compensation summary by department/division where metadata supports it.
+- [x] Preserve source page references.
+- [x] Flag ambiguous compensation labels for review.
+
+Implemented in `src/budget_audit/compensation.py` (`analyze-compensation` CLI command). Heuristic is coarse and explicitly low-confidence; see `docs/weakley-fwm-2026-06-30-workflow.md` "Analysis and report generation".
 
 ### Add analysis outputs
 
@@ -85,11 +87,13 @@ Begin turning normalized rows into intelligence.
 
 Acceptance criteria:
 
-- [ ] Compute budget-to-budget deltas.
-- [ ] Compute actual-to-budget deltas.
-- [ ] Add materiality thresholds.
-- [ ] Generate review questions for large or unclear changes.
-- [ ] Produce a citizen-readable markdown report.
+- [x] Compute budget-to-budget deltas.
+- [x] Compute actual-to-budget deltas.
+- [x] Add materiality thresholds.
+- [ ] Generate review questions for large or unclear changes. (open questions are attached per-finding, but not yet a distinct citizen-facing question list)
+- [x] Produce a citizen-readable markdown report.
+
+Implemented in `src/budget_audit/analyze.py`, `src/budget_audit/findings.py`, `src/budget_audit/report.py` (`analyze-deltas`, `build-findings`, `report`, and umbrella `generate-report` CLI commands). First checkpoint: 250 material deltas, 3 compensation flags, 5 reconciliation findings across funds 101/116/122/131/141 -- see `docs/weakley-fwm-2026-06-30-workflow.md`. Scope explicitly excludes funds 143+ (pages 139+, not yet extracted).
 
 ### Decide raw public PDF storage policy
 

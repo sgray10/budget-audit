@@ -129,3 +129,78 @@ Current Fund 101 reconciliation:
 | Unparsed amounts | 0 |
 
 This suggests Fund 101 is close to balanced in the OCR-derived working dataset, with a net difference of -4,407 after transfers.
+
+## Analysis and report generation
+
+Once a page range is reconciled and checkpointed, it can be folded into the citizen-readable report. This is separate from the extraction chain above and works from the `_corrected` row CSVs for each reviewed range.
+
+Consolidate the reviewed/corrected row CSVs (disjoint page ranges, so this is a plain concatenation -- add a third `--rows`/path when Fund 143 is added):
+
+    budget-audit consolidate-reviewed-rows \
+      data/processed/ocr_table_rows_023_085_corrected.csv \
+      data/processed/ocr_table_rows_86_138_corrected.csv \
+      --out data/processed/reviewed_funds_rows.csv
+
+Compute year-over-year deltas and flag material changes (default: both an absolute-dollar floor of $5,000 and a percent floor of 15% must be exceeded, to avoid flooding the report with small-dollar lines that swing wildly by percent):
+
+    budget-audit analyze-deltas data/processed/reviewed_funds_rows.csv \
+      --out-dir data/processed
+
+Roll up compensation-category rows and flag ones that plausibly identify an individual position rather than an aggregate category:
+
+    budget-audit analyze-compensation data/processed/reviewed_funds_rows.csv \
+      --out-dir data/processed
+
+Assemble findings. `--reconcile fund=path` must point at the corrected/authoritative reconcile file for each fund -- several stale duplicates exist locally (see note below), so this is deliberately explicit rather than globbed:
+
+    budget-audit build-findings data/processed/line_item_deltas.csv \
+      --compensation-flags data/processed/compensation_flags.csv \
+      --reconcile 101=data/processed/reconcile_fund_101_023_085.csv \
+      --reconcile 116=data/processed/reconcile_fund_116_023_085.csv \
+      --reconcile 122=data/processed/reconcile_fund_122_023_085.csv \
+      --reconcile 131=data/processed/reconcile_fund_131_023_085_corrected.csv \
+      --reconcile 141=data/processed/reconcile_fund_141_86_138.csv \
+      --out data/processed/findings.csv
+
+Render the markdown report:
+
+    budget-audit report data/processed/findings.csv \
+      --reconcile 101=data/processed/reconcile_fund_101_023_085.csv \
+      --reconcile 116=data/processed/reconcile_fund_116_023_085.csv \
+      --reconcile 122=data/processed/reconcile_fund_122_023_085.csv \
+      --reconcile 131=data/processed/reconcile_fund_131_023_085_corrected.csv \
+      --reconcile 141=data/processed/reconcile_fund_141_86_138.csv \
+      --out reports/weakley-fwm-2026-06-30.md
+
+Or run the full chain in one command:
+
+    budget-audit generate-report \
+      --rows data/processed/ocr_table_rows_023_085_corrected.csv \
+      --rows data/processed/ocr_table_rows_86_138_corrected.csv \
+      --reconcile 101=data/processed/reconcile_fund_101_023_085.csv \
+      --reconcile 116=data/processed/reconcile_fund_116_023_085.csv \
+      --reconcile 122=data/processed/reconcile_fund_122_023_085.csv \
+      --reconcile 131=data/processed/reconcile_fund_131_023_085_corrected.csv \
+      --reconcile 141=data/processed/reconcile_fund_141_86_138.csv \
+      --out-dir data/processed --reports-dir reports --report-filename weakley-fwm-2026-06-30.md
+
+**Note on stale duplicate files:** `data/processed/reconcile_fund_131_023_085.csv` and `reconcile_fund_131_23_85.csv` both hold a pre-correction number (revenue_line_items=7,939,610); only `reconcile_fund_131_023_085_corrected.csv` (7,909,610) is correct and must be the one referenced above.
+
+### First analysis/report checkpoint
+
+| Metric | Count |
+|---|---:|
+| Consolidated rows (funds 101, 116, 122, 131, 141) | 1,547 |
+| Line items analyzed | 1,543 |
+| Material year-over-year changes (headline actual 25-26 -> budget 26-27, both $5,000 and 15% thresholds) | 250 |
+| New line items | 0 |
+| Eliminated line items | 0 |
+| Compensation rows flagged needs_review | 3 |
+| Reconciliation findings (funds not reconciling within $100 tolerance) | 5 |
+| Total findings | 258 |
+
+All 5 covered funds' reconciliation totals in the rendered report match the checkpoint numbers above exactly. Report output: `reports/weakley-fwm-2026-06-30.md`.
+
+Zero new/eliminated line items reflects this dataset specifically -- every reviewed line item has both an `actual_25_26` and a `budget_26_27` value, so nothing is missing on either side of the headline comparison. This may not hold once Fund 143+ is added.
+
+The compensation `contains_salary_or_compensation` field is page-level metadata (set by page-review enrichment, true for the whole page), not a per-row signal -- `analyze-compensation` filters on the row-level `category == "compensation"` classification only.
