@@ -6,7 +6,7 @@ GitHub issues are now available through the connector. This file remains as the 
 
 Goal: make the reviewed Weakley packet range reproducible from OCR text through corrected reconciliation.
 
-Status: mostly complete for pages 23-149. Funds 101, 116, 122, 131, 141, 143, and 151 reconcile to reviewed summary totals.
+Status: **complete for the full packet, pages 23-158.** All ten funds (101, 116, 122, 131, 141, 143, 151, 171, 172, 202) reconcile to reviewed summary totals.
 
 Done:
 
@@ -22,6 +22,9 @@ Done:
 - Checkpoint doc for Fund 141 pages 86-138.
 - Checkpoint doc for Fund 143 pages 139-142.
 - Checkpoint doc for Fund 151 pages 143-149.
+- Checkpoint doc for Fund 171 pages 150-152.
+- Checkpoint doc for Fund 172 pages 153-155.
+- Checkpoint doc for Fund 202 pages 156-158 (last fund in the packet).
 
 Remaining:
 
@@ -42,7 +45,7 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #4 | Medium | Improve correction replacement matching. | Closed -- implemented in #5 |
 | #7 | Medium | Extract and reconcile Fund 171 General Capital Projects (pages 150-152). | Closed -- implemented in #13 |
 | #8 | Medium | Extract and reconcile Fund 172 Community Development (pages 153-155). | Closed -- implemented in #15 |
-| #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Open |
+| #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Implemented, PR pending -- closes on merge |
 | #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Open |
 | #11 | Low | Decide raw public PDF storage policy. | Open |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Open |
