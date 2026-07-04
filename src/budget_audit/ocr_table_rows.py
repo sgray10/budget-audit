@@ -12,6 +12,19 @@ ACCOUNT_ROW_RE = re.compile(
     r"(?P<budget_26_27>[\d,§,().-]+(?:\s+[\d,§,().-]+)*)\s*$"
 )
 
+# Mirrors ACCOUNT_ROW_RE's trailing 4-amount-group structure, but anchored on
+# a total/subtotal label instead of a leading digit account -- total lines
+# (e.g. "Sub-Total 15,142,886 16,551,008 16,980,613 16,636,270") have no
+# account number and were previously skipped entirely.
+TOTAL_ROW_RE = re.compile(
+    r"^\s*(?P<label>(?:grand\s+)?(?:sub[- ]?)?total\b.*?)\s+"
+    r"(?P<actual_24_25>[\d,§,().-]+(?:\s+[\d,§,().-]+)*)\s+"
+    r"(?P<budget_25_26>[\d,§,().-]+(?:\s+[\d,§,().-]+)*)\s+"
+    r"(?P<actual_25_26>[\d,§,().-]+(?:\s+[\d,§,().-]+)*)\s+"
+    r"(?P<budget_26_27>[\d,§,().-]+(?:\s+[\d,§,().-]+)*)\s*$",
+    re.IGNORECASE,
+)
+
 HEADER_HINT_RE = re.compile(
     r"fund number|fund:|revenue|expenditure|actual|budget|department|division",
     re.IGNORECASE,
@@ -32,6 +45,8 @@ def classify_raw_line(line: str) -> str:
         return "blank"
     if ACCOUNT_ROW_RE.match(stripped):
         return "account_row"
+    if TOTAL_ROW_RE.match(stripped):
+        return "total_row"
     if HEADER_HINT_RE.search(stripped):
         return "header_or_context"
     if re.fullmatch(r"\d{3,5}", stripped):
@@ -63,10 +78,16 @@ def extract_ocr_table_rows(
             if line_type in {"header_or_context", "account_group"}:
                 current_context = line.strip()
 
-            if line_type != "account_row":
+            if line_type not in {"account_row", "total_row"}:
                 continue
 
-            match = ACCOUNT_ROW_RE.match(line)
+            if line_type == "account_row":
+                match = ACCOUNT_ROW_RE.match(line)
+                account = "" if match is None else match.group("account")
+            else:
+                match = TOTAL_ROW_RE.match(line)
+                account = ""
+
             if match is None:
                 continue
 
@@ -85,7 +106,7 @@ def extract_ocr_table_rows(
                     "page_number": str(page_number),
                     "line_number": str(line_number),
                     "context_hint": current_context,
-                    "account": parsed["account"],
+                    "account": account,
                     "label": parsed["label"],
                     "actual_24_25": parsed["actual_24_25"],
                     "budget_25_26": parsed["budget_25_26"],

@@ -59,10 +59,13 @@ def run_reviewed_range_workflow(
     classified_rows = classify_ocr_rows(paths.enriched_rows, paths.classified_rows)
 
     if corrections_path is None:
-        correction_stats = {"replaced": 0, "added": 0}
+        replaced_rows = 0
+        added_rows = 0
         corrected_source = paths.classified_rows
     else:
         correction_stats = apply_row_corrections(paths.classified_rows, corrections_path, paths.corrected_rows)
+        replaced_rows = correction_stats["replaced"]
+        added_rows = correction_stats["added"]
         corrected_source = paths.corrected_rows
 
     review_rows = build_ocr_review_queue(corrected_source, paths.review_queue)
@@ -77,8 +80,8 @@ def run_reviewed_range_workflow(
         "raw_rows": raw_rows,
         "enriched_rows": enriched_rows,
         "classified_rows": classified_rows,
-        "replaced_rows": correction_stats["replaced"],
-        "added_rows": correction_stats["added"],
+        "replaced_rows": replaced_rows,
+        "added_rows": added_rows,
         "review_rows": review_rows,
         "summary_line_rows": summary_stats["line_rows"],
         "summary_non_line_rows": summary_stats["non_line_rows"],

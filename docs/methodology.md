@@ -93,6 +93,8 @@ Failed reconciliation is not proof of misconduct. It is a review item.
 
 ## 6. Analyze
 
+See `docs/report-design.md` for the detailed finding taxonomy, clustering, pairing-detection, and public-records-question-generation spec that governs steps 6-7. A machine-generated report is a review queue, not an audit finding — see that document's tone and language rules before writing any finding-generation or report code.
+
 Analysis should distinguish:
 
 - factual findings
