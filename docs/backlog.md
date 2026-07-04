@@ -45,7 +45,7 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #4 | Medium | Improve correction replacement matching. | Closed -- implemented in #5 |
 | #7 | Medium | Extract and reconcile Fund 171 General Capital Projects (pages 150-152). | Closed -- implemented in #13 |
 | #8 | Medium | Extract and reconcile Fund 172 Community Development (pages 153-155). | Closed -- implemented in #15 |
-| #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Implemented, PR pending -- closes on merge |
+| #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Closed -- implemented in #16. **All fund extraction now complete.** |
 | #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Open |
 | #11 | Low | Decide raw public PDF storage policy. | Open |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Open |
