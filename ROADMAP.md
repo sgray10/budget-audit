@@ -96,6 +96,7 @@ Goal: validate against real local documents.
 - [x] Extract and reconcile Funds 116, 122, and 131 through the current reviewed range.
 - [x] Extract and reconcile Fund 141 General Purpose School budget pages.
 - [x] Continue extraction with Fund 143 (pages 139-142). See issue #3.
+- [x] Continue extraction with Fund 151 Debt Service (pages 143-149).
 - [~] Extract salary-related line items across funds.
 - [ ] Compare investment policy versions.
 - [ ] Build first public-facing summary. See issue #2.
@@ -110,9 +111,9 @@ Goal: make the tool useful beyond one packet or one county.
 - [ ] Add documentation for journalists and citizens.
 - [ ] Consider a static site output.
 
-## Current checkpoint — 2026-06-30 packet, pages 23-142
+## Current checkpoint — 2026-06-30 packet, pages 23-149
 
-The current working slice covers the Weakley County Finance, Ways, and Means packet budget pages 23-142. The pipeline can render/OCR pages, extract OCR rows (including total/subtotal lines, not just account rows), enrich with page-review metadata, classify rows, apply manual corrections (with whitespace-normalized matching and unmatched/ambiguous detection), create review queues, summarize, reconcile selected funds, and reconcile subtotal groups against their own source total lines.
+The current working slice covers the Weakley County Finance, Ways, and Means packet budget pages 23-149. The pipeline can render/OCR pages, extract OCR rows (including total/subtotal lines, not just account rows), enrich with page-review metadata, classify rows, apply manual corrections (with whitespace-normalized matching and unmatched/ambiguous detection), create review queues, summarize, reconcile selected funds, and reconcile subtotal groups against their own source total lines.
 
 Known validated reconciliation checkpoint:
 
@@ -124,10 +125,11 @@ Known validated reconciliation checkpoint:
 | 131 | Reconciled after correction overlay | Revenue 7,909,610; expenditures 7,868,699; net 40,911. |
 | 141 | Reconciled after correction overlay | Revenue with transfers 48,156,476; expenditures 48,154,424; net 2,052. |
 | 143 | Reconciled after correction overlay | Revenue 3,621,955; expenditures 3,621,955; net 0 (exactly balanced budget). |
+| 151 | Reconciled after correction overlay | Revenue 1,021,582; expenditures 1,261,204; net -239,622 (matches packet's own printed deficit exactly). |
 
 Next best milestones:
 
-1. Continue extraction/page-review metadata with Fund 151 Debt Service (pages 143-149).
-2. Fund 171 (General Capital Projects), Fund 172 (Community Development), Fund 202 (Nursing Home) after that.
+1. Continue extraction/page-review metadata with Fund 171 General Capital Projects (pages 150-152).
+2. Fund 172 (Community Development, pages 153-155) and Fund 202 (Nursing Home, pages 156-158) after that.
 3. Adopt the fuller finding taxonomy/clustering/public-records-question spec in `docs/report-design.md` for the analysis/report layer.
 4. Compare investment policy versions (Resolution 2026-52) -- separate document/policy-text analysis, not fund extraction.
