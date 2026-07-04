@@ -37,6 +37,8 @@ The agenda includes budget amendments for FY ending 2026-06-30 and approvals for
 - What reports are required, how often, and are they public?
 - Are investment reports reconciled against policy requirements?
 
+Answered (with two flagged as needing a public-records follow-up) in `docs/checkpoints/weakley-fwm-2026-06-30-investment-policy-resolution-2026-52.md`, covering Resolution 2026-52 and its two attached policy exhibits.
+
 ## Suggested first-pass analyses
 
 1. Fund-level budget comparison

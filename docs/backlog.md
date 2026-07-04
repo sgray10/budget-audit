@@ -46,8 +46,8 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #7 | Medium | Extract and reconcile Fund 171 General Capital Projects (pages 150-152). | Closed -- implemented in #13 |
 | #8 | Medium | Extract and reconcile Fund 172 Community Development (pages 153-155). | Closed -- implemented in #15 |
 | #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Closed -- implemented in #16. **All fund extraction now complete.** |
-| #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Open |
-| #11 | Low | Decide raw public PDF storage policy. | Implemented, PR pending -- closes on merge |
+| #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Implemented, PR pending -- closes on merge |
+| #11 | Low | Decide raw public PDF storage policy. | Closed -- implemented in #28 |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Closed -- implemented across #17/#18/#23/#24 (Codex) and #25 |
 | #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Closed -- implemented in #26 |
 | #20 | Medium | Add top absolute-dollar and percentage change report sections (sub-issue of #12). | Closed -- implemented in #17/#18/#23/#24 (Codex) |
@@ -140,6 +140,20 @@ Acceptance criteria:
 - [x] Flag ambiguous compensation labels for review.
 
 Implemented in `src/budget_audit/compensation.py` (`analyze-compensation` CLI command). Heuristic is coarse and explicitly low-confidence; see `docs/weakley-fwm-2026-06-30-workflow.md` "Analysis and report generation".
+
+### Diff investment policy amendment (Resolution 2026-52) -- issue #10
+
+Resolution 2026-52 amends the county investment policy. Pages 3-22 of the packet (front matter, never previously OCR'd for fund extraction) turned out to contain both the original policy (pages 8-14, stamped "ORIGINAL") and the amended policy (pages 15-22) -- and the amended copy is itself a redline, with substantively new/changed text printed in red ink in the source scan, distinguishing it from carried-over black text.
+
+Acceptance criteria:
+
+- [x] Locate the investment policy amendment pages in the packet.
+- [x] Extract or transcribe the amended policy text with page provenance.
+- [x] If a prior policy version is available, diff old vs new. (It was available in the same packet -- no external records request needed.)
+- [x] Answer the open questions above where the source supports it, flag as needs_review where it doesn't.
+- [x] Publish as a short citizen-readable note with source page references.
+
+Implemented: `docs/checkpoints/weakley-fwm-2026-06-30-investment-policy-resolution-2026-52.md`. Summary of the real diff: the amendment (1) makes the investment committee's membership and the County Trustee's delegated day-to-day investment authority explicit (a November 18, 2024 committee vote), and (2) rewrites the authorized-investment-types section to quote TCA 5-8-301 through 5-8-303 directly, which along the way swaps "student loan marketing association" for "federal home loan mortgage corporation" in the eligible-issuer list and adds a maturity/population-based commercial-paper carve-out. Two of the four open questions (are bimonthly investment reports public; are they actually reconciled against policy) can't be answered from this packet alone and are flagged as public-records follow-up candidates.
 
 ### Decide raw public PDF storage policy -- issue #11
 
