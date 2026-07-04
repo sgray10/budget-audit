@@ -384,3 +384,84 @@ def test_render_report_full_verbosity_includes_appendices(tmp_path: Path) -> Non
     assert "## Appendix D" in content
     assert "## How to read this report" in content
     assert not BANNED_WORDS.search(content)
+
+
+PRIORITY_AREAS_V3_HEADER = (
+    "priority_area_id,title,funds,why_it_matters,why_normal,first_records_request,dollar_amounts,"
+    "pattern,questions,evidence,related_items,depends_on_manual_correction\n"
+)
+
+
+def test_render_priority_areas_includes_why_normal_and_records_request(tmp_path: Path) -> None:
+    priority_areas_path = tmp_path / "priority_areas.csv"
+    priority_areas_path.write_text(
+        PRIORITY_AREAS_V3_HEADER
+        + 'structural-202,"Fund 202 Nursing Home fund-wide change",202,'
+        '"Revenue and expenditure both drop to near zero.",'
+        '"This may reflect activity moving to another fund.",'
+        '"Documents explaining the FY 2026-27 change in this fund.",'
+        '"revenue 1633722 -> 0",structural_change,"Does this fund remain active?",'
+        '"fund=202 Nursing Home | page=156 account=43120 label=Patient Charges 1611103 -> 0",'
+        '"Fund 101 page 24 account 44110: NH Investment Income - Nursing Home Funds",true\n',
+        encoding="utf-8",
+    )
+
+    section = render_priority_areas_section(priority_areas_path)
+
+    assert "**Why this may be normal:**" in section
+    assert "may reflect activity moving to another fund" in section
+    assert "**Recommended first records request:**" in section
+    assert "Documents explaining the FY 2026-27 change" in section
+    assert "Potentially related items" in section
+    assert "NH Investment Income - Nursing Home Funds" in section
+    # Evidence renders per-line detail, not just an opaque id.
+    assert "page=156 account=43120" in section
+    assert not BANNED_WORDS.search(section)
+
+
+def test_render_priority_areas_one_sided_pattern_gets_explanatory_note(tmp_path: Path) -> None:
+    from budget_audit.clusters import ONE_SIDED_NOTE
+
+    priority_areas_path = tmp_path / "priority_areas.csv"
+    priority_areas_path.write_text(
+        PRIORITY_AREAS_V3_HEADER
+        + 'cluster-151-JAIL,"Fund 151 Debt Service: JAIL cluster",151,'
+        '"Debt-service obligation.","May reflect ordinary debt issuance.",'
+        '"Debt schedule and note documents.","revenue 0; expenditure 559219",one_sided,'
+        '"Please provide the debt schedule.","cluster_id=151-JAIL",,false\n',
+        encoding="utf-8",
+    )
+
+    section = render_priority_areas_section(priority_areas_path)
+
+    assert ONE_SIDED_NOTE in section
+    assert not BANNED_WORDS.search(section)
+
+
+def test_render_top_clusters_narratives_cover_priority_clusters_beyond_top_n(tmp_path: Path) -> None:
+    clusters_path = tmp_path / "clusters.csv"
+    header = (
+        "cluster_id,fund_number,fund_name,prefix,revenue_total,expenditure_total,"
+        "capital_expenditure_total,is_paired,line_item_count,sample_labels,cluster_type,narrative,"
+        "key_revenue_line,key_expenditure_line\n"
+    )
+    # Five big clusters fill the narrative top-N; one small priority cluster
+    # must still get a narrative because it appears in the priority areas.
+    rows = "".join(
+        f'141-G{i},141,General Purpose School,G{i},{900000 - i},{900000 - i},0,true,5,"label",'
+        f'grant_funded_program,"narrative for G{i}","",""\n'
+        for i in range(5)
+    )
+    rows += (
+        '151-JAIL,151,Debt Service,JAIL,0,50000,0,false,2,"JAIL Principal on Notes",debt_service,'
+        '"narrative for JAIL","",""\n'
+    )
+    clusters_path.write_text(header + rows, encoding="utf-8")
+
+    without_priority = render_top_clusters_section(clusters_path, narrative_n=5)
+    with_priority = render_top_clusters_section(
+        clusters_path, narrative_n=5, priority_cluster_ids={"151-JAIL"}
+    )
+
+    assert "narrative for JAIL" not in without_priority
+    assert "narrative for JAIL" in with_priority

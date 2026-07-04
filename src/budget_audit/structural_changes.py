@@ -37,6 +37,10 @@ class WholeFundChange:
     expenditure_old: Decimal
     expenditure_new: Decimal
     sample_labels: list[str]
+    # Human-readable per-line references (page/account/label/old->new) for
+    # the largest lines driving the change -- so evidence rendering doesn't
+    # have to say only "fund=202".
+    sample_lines: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -47,6 +51,8 @@ class GrantFundedCapitalPair:
     revenue_delta: Decimal
     expenditure_label: str
     expenditure_delta: Decimal
+    revenue_evidence: str = ""
+    expenditure_evidence: str = ""
 
 
 def _to_decimal(value: str) -> Decimal | None:
@@ -81,7 +87,7 @@ def detect_whole_fund_changes(delta_rows_path: Path) -> list[WholeFundChange]:
         revenue_new = Decimal("0")
         expenditure_old = Decimal("0")
         expenditure_new = Decimal("0")
-        sample_labels: list[str] = []
+        changed_rows: list[tuple[Decimal, dict[str, str]]] = []
 
         for row in fund_rows:
             old_val = _to_decimal(row.get("old_value", "")) or Decimal("0")
@@ -92,8 +98,18 @@ def detect_whole_fund_changes(delta_rows_path: Path) -> list[WholeFundChange]:
             elif row.get("budget_side") == "expenditure":
                 expenditure_old += old_val
                 expenditure_new += new_val
-            if old_val != 0 and new_val == 0 and len(sample_labels) < 3:
-                sample_labels.append(row.get("label", ""))
+            if old_val != 0 and new_val == 0:
+                changed_rows.append((abs(old_val), row))
+
+        # Largest zeroed lines first, so the evidence names the rows that
+        # actually drive the fund-wide pattern.
+        changed_rows.sort(key=lambda item: item[0], reverse=True)
+        sample_labels = [row.get("label", "") for _amount, row in changed_rows[:3]]
+        sample_lines = tuple(
+            f"page={row.get('page_number', '')} account={row.get('account', '')} "
+            f"label={row.get('label', '')} {row.get('old_value', '')} -> {row.get('new_value', '') or '0'}"
+            for _amount, row in changed_rows[:3]
+        )
 
         zeroed_out = (
             revenue_old >= WHOLE_FUND_ACTIVE_FLOOR
@@ -119,6 +135,7 @@ def detect_whole_fund_changes(delta_rows_path: Path) -> list[WholeFundChange]:
                     expenditure_old=expenditure_old,
                     expenditure_new=expenditure_new,
                     sample_labels=sample_labels,
+                    sample_lines=sample_lines,
                 )
             )
 
@@ -140,11 +157,18 @@ def detect_grant_funded_capital_pairs(delta_rows_path: Path) -> list[GrantFunded
     for row in rows:
         by_fund.setdefault(row["fund_number"], []).append(row)
 
+    def _row_evidence(row: dict[str, str]) -> str:
+        return (
+            f"page={row.get('page_number', '')} account={row.get('account', '')} "
+            f"label={row.get('label', '')} {row.get('old_value', '')} -> {row.get('new_value', '')} "
+            f"(delta {row.get('absolute_delta', '')})"
+        )
+
     pairs: list[GrantFundedCapitalPair] = []
     for fund_number, fund_rows in sorted(by_fund.items()):
         fund_name = fund_rows[0].get("fund_name", "")
-        best_revenue: tuple[str, Decimal] | None = None
-        best_expenditure: tuple[str, Decimal] | None = None
+        best_revenue: tuple[dict[str, str], Decimal] | None = None
+        best_expenditure: tuple[dict[str, str], Decimal] | None = None
 
         for row in fund_rows:
             budget_side = row.get("budget_side", "")
@@ -155,10 +179,10 @@ def detect_grant_funded_capital_pairs(delta_rows_path: Path) -> list[GrantFunded
 
             if category == "grant_or_intergovernmental_revenue" and delta >= GRANT_CAPITAL_PAIR_FLOOR:
                 if best_revenue is None or delta > best_revenue[1]:
-                    best_revenue = (row.get("label", ""), delta)
+                    best_revenue = (row, delta)
             if category == "capital_project" and delta >= GRANT_CAPITAL_PAIR_FLOOR:
                 if best_expenditure is None or delta > best_expenditure[1]:
-                    best_expenditure = (row.get("label", ""), delta)
+                    best_expenditure = (row, delta)
 
         if best_revenue is None or best_expenditure is None:
             continue
@@ -171,10 +195,12 @@ def detect_grant_funded_capital_pairs(delta_rows_path: Path) -> list[GrantFunded
             GrantFundedCapitalPair(
                 fund_number=fund_number,
                 fund_name=fund_name,
-                revenue_label=best_revenue[0],
+                revenue_label=best_revenue[0].get("label", ""),
                 revenue_delta=best_revenue[1],
-                expenditure_label=best_expenditure[0],
+                expenditure_label=best_expenditure[0].get("label", ""),
                 expenditure_delta=best_expenditure[1],
+                revenue_evidence=_row_evidence(best_revenue[0]),
+                expenditure_evidence=_row_evidence(best_expenditure[0]),
             )
         )
 

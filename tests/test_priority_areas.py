@@ -109,3 +109,69 @@ def test_build_priority_areas_includes_data_quality_group(tmp_path: Path) -> Non
     assert len(areas) == 1
     assert areas[0].pattern == "data_quality_driven"
     assert "101" in areas[0].funds
+
+
+def _nursing_home_change() -> WholeFundChange:
+    return WholeFundChange(
+        fund_number="202",
+        fund_name="Nursing Home",
+        direction="zeroed_out",
+        revenue_old=Decimal("1633722"),
+        revenue_new=Decimal("0"),
+        expenditure_old=Decimal("1627354"),
+        expenditure_new=Decimal("0"),
+        sample_labels=["Patient Charges"],
+        sample_lines=("page=156 account=43120 label=Patient Charges 1611103 -> 0",),
+    )
+
+
+def test_priority_areas_cross_link_nursing_home_to_fund_101_nh_lines(tmp_path: Path) -> None:
+    from budget_audit.related_items import build_label_index
+
+    rows_path = tmp_path / "rows.csv"
+    rows_path.write_text(
+        "document_id,page_number,row_type,fund_number,fund_name,account,label\n"
+        "doc,24,line_item,101,General,44110,NH Investment Income - Nursing Home Funds\n"
+        "doc,27,line_item,101,General,48130,NH Contributions - Nursing Home\n"
+        "doc,156,line_item,202,Nursing Home,43120,Patient Charges\n",
+        encoding="utf-8",
+    )
+    label_index = build_label_index(rows_path)
+
+    areas = build_priority_areas(None, [_nursing_home_change()], [], [], label_index=label_index)
+
+    assert len(areas) == 1
+    descriptions = [item.description for item in areas[0].related_items]
+    assert any("NH Investment Income - Nursing Home Funds" in d for d in descriptions)
+    assert any("NH Contributions - Nursing Home" in d for d in descriptions)
+    # The records request mentions the related lines rather than ignoring them.
+    assert "include any related lines in other funds" in areas[0].first_records_request
+
+
+def test_priority_areas_populate_why_normal_and_records_request() -> None:
+    areas = build_priority_areas(None, [_nursing_home_change()], [], [])
+
+    assert len(areas) == 1
+    area = areas[0]
+    assert "may reflect activity moving to another fund" in area.why_normal
+    assert "commission minutes" in area.first_records_request
+    # Evidence carries the per-line detail, not just the fund number.
+    assert any("page=156" in item for item in area.evidence)
+
+
+def test_priority_areas_cluster_evidence_includes_key_lines(tmp_path: Path) -> None:
+    clusters_path = tmp_path / "clusters.csv"
+    clusters_path.write_text(
+        "cluster_id,fund_number,fund_name,prefix,revenue_total,expenditure_total,"
+        "capital_expenditure_total,is_paired,line_item_count,sample_labels,cluster_type,narrative,"
+        "key_revenue_line,key_expenditure_line\n"
+        '151-JAIL,151,Debt Service,JAIL,0,559219,0,false,2,"JAIL Principal on Notes",debt_service,'
+        '"debt narrative","","page=145 account=602 label=JAIL Principal on Notes budget_26_27=470000"\n',
+        encoding="utf-8",
+    )
+
+    areas = build_priority_areas(clusters_path, [], [], [])
+
+    assert len(areas) == 1
+    assert any("page=145" in item for item in areas[0].evidence)
+    assert "Debt schedule" in areas[0].first_records_request

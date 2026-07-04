@@ -184,3 +184,83 @@ def test_analyze_data_quality_reports_high_impact_count(tmp_path: Path) -> None:
 
     rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
     assert int(rows[0]["impact_score"]) >= HIGH_IMPACT_THRESHOLD
+
+
+def test_corrupted_label_crd_broken_word_fragments_detected() -> None:
+    # The real Fund 101 CRD row: OCR split a word into "lal eral" fragments.
+    row = base_row()
+    row["label"] = "CRD Other State lal eral Development"
+    row["budget_26_27"] = "500000"
+
+    warnings = data_quality_warnings_for_row(row)
+
+    assert [w.warning_type for w in warnings] == ["ocr_corrupted_label"]
+
+
+def test_corrupted_label_tisa_quote_artifact_detected() -> None:
+    # The real Fund 141 TISA row: quote artifact plus mangled casing.
+    row = base_row()
+    row["label"] = "tisa 'N Investment yore Achievement"
+    row["budget_26_27"] = "33009856"
+
+    warnings = data_quality_warnings_for_row(row)
+
+    assert [w.warning_type for w in warnings] == ["ocr_corrupted_label"]
+
+
+def test_clean_labels_not_flagged_as_corrupted() -> None:
+    # Real labels that superficially resemble corruption must not be flagged.
+    for label in [
+        "Building & Contents Insurance",
+        "Maintenance/Repair - Equipment",
+        "Trustee's Collections - Prior Year",
+        "Payment in Lieu of Taxes - WCMES",
+        "OPID City of Dresden",
+    ]:
+        row = base_row()
+        row["label"] = label
+        warnings = data_quality_warnings_for_row(row)
+        assert warnings == [], f"{label!r} incorrectly flagged: {[w.warning_type for w in warnings]}"
+
+
+def test_corrupted_label_with_large_amount_escalates_without_context() -> None:
+    # CRD-shaped: corrupted label carrying $500k. Must clear the high-impact
+    # bar even before any cross-reference context is applied.
+    row = base_row()
+    row["label"] = "CRD Other State lal eral Development"
+    row["budget_26_27"] = "500000"
+
+    warnings = data_quality_warnings_for_row(row)
+    score = data_quality_impact_score(warnings[0])
+
+    assert is_high_impact(score)
+
+
+def test_corrupted_label_in_top_dollar_change_escalates() -> None:
+    # TISA-shaped: corrupted label on a $33M row that appears in the top
+    # absolute-dollar changes.
+    row = base_row()
+    row["label"] = "tisa 'N Investment yore Achievement"
+    row["budget_26_27"] = "33009856"
+
+    warnings = data_quality_warnings_for_row(row)
+    context = ImpactContext(top_change_keys=frozenset({("doc", "23", "40110")}))
+    score = data_quality_impact_score(warnings[0], context)
+
+    assert is_high_impact(score)
+
+
+def test_corrupted_label_with_small_amount_and_no_context_stays_low_impact() -> None:
+    # The same corruption on a minor row shouldn't flood the main body.
+    row = base_row()
+    row["label"] = "XYZ Some lal eral Label"
+    row["actual_24_25"] = "100"
+    row["budget_25_26"] = "100"
+    row["actual_25_26"] = "100"
+    row["budget_26_27"] = "100"
+
+    warnings = data_quality_warnings_for_row(row)
+    score = data_quality_impact_score(warnings[0])
+
+    assert warnings[0].warning_type == "ocr_corrupted_label"
+    assert not is_high_impact(score)

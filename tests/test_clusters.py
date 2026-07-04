@@ -170,3 +170,93 @@ def test_build_clusters_tags_grant_funded_program_when_no_capital_side(tmp_path:
     rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
     assert rows[0]["cluster_type"] == "grant_funded_program"
     assert "grant- or program-funded activity" in rows[0]["narrative"]
+
+
+def test_build_clusters_tags_mixed_grant_program_when_capital_share_is_intermediate(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    out_path = tmp_path / "clusters.csv"
+
+    # Real Fund 141 ISM pattern: grant revenue paired with an expense side
+    # that is substantially capital (equipment/building) but also carries
+    # real personnel/benefits spending -- ~73% capital in the real data,
+    # between the configured dominant (80%) and immaterial (20%) thresholds.
+    rows_path.write_text(
+        ROW_HEADER
+        + "doc,87,line_item,141,General Purpose School,Fund 141 General Purpose School revenues,46790,ISM Innovative Schools Model (ISM),421711\n"
+        + "doc,120,line_item,141,General Purpose School,Fund 141 General Purpose School expenditures,730,ISM Vocational Instructional Equipment,152706\n"
+        + "doc,121,line_item,141,General Purpose School,Fund 141 General Purpose School expenditures,707,ISM Building Improvements,146947\n"
+        + "doc,105,line_item,141,General Purpose School,Fund 141 General Purpose School expenditures,116,ISM Teachers,70433\n"
+        + "doc,105,line_item,141,General Purpose School,Fund 141 General Purpose School expenditures,207,ISM Medical Insurance,9000\n",
+        encoding="utf-8",
+    )
+
+    build_clusters(rows_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert rows[0]["cluster_type"] == "mixed_grant_program"
+    assert "mix of program costs" in rows[0]["narrative"]
+    # Capital share must be tracked for the threshold decision.
+    assert rows[0]["capital_expenditure_total"] == "299653"
+
+
+def test_build_clusters_capital_project_requires_capital_dominance(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    out_path = tmp_path / "clusters.csv"
+
+    # A paired grant cluster whose expense side is almost all personnel with
+    # a token equipment line must NOT be called a capital project.
+    rows_path.write_text(
+        ROW_HEADER
+        + "doc,87,line_item,141,General Purpose School,Fund 141 General Purpose School revenues,46590,SUM Summer Learning Camp,480962\n"
+        + "doc,110,line_item,141,General Purpose School,Fund 141 General Purpose School expenditures,116,SUM Teachers,430000\n"
+        + "doc,111,line_item,141,General Purpose School,Fund 141 General Purpose School expenditures,790,SUM Other Equipment,48912\n",
+        encoding="utf-8",
+    )
+
+    build_clusters(rows_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    # ~10% capital share -> below the immaterial threshold -> plain program.
+    assert rows[0]["cluster_type"] == "grant_funded_program"
+
+
+def test_build_clusters_one_sided_narrative_includes_note(tmp_path: Path) -> None:
+    from budget_audit.clusters import ONE_SIDED_NOTE
+
+    rows_path = tmp_path / "rows.csv"
+    out_path = tmp_path / "clusters.csv"
+
+    # Real Fund 151 JAIL pattern: debt-service expenditure with no offsetting
+    # revenue inside the extracted pages.
+    rows_path.write_text(
+        ROW_HEADER
+        + "doc,145,line_item,151,Debt Service,Fund 151 Debt Service expenditures,602,JAIL Principal on Notes,470000\n"
+        + "doc,146,line_item,151,Debt Service,Fund 151 Debt Service expenditures,613,JAIL Interest on Other Loans Payable,89219\n",
+        encoding="utf-8",
+    )
+
+    build_clusters(rows_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert rows[0]["is_paired"] == "false"
+    assert ONE_SIDED_NOTE in rows[0]["narrative"]
+
+
+def test_build_clusters_records_key_line_references(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    out_path = tmp_path / "clusters.csv"
+
+    rows_path.write_text(
+        ROW_HEADER
+        + "doc,30,line_item,101,General,Fund 101 General Fund revenues,46980,CRD Other State Grants,500000\n"
+        + "doc,70,line_item,101,General,Fund 101 General Fund expenditures,707,CRD Building Improvements,550000\n",
+        encoding="utf-8",
+    )
+
+    build_clusters(rows_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert "page=30" in rows[0]["key_revenue_line"]
+    assert "account=46980" in rows[0]["key_revenue_line"]
+    assert "page=70" in rows[0]["key_expenditure_line"]
+    assert "CRD Building Improvements" in rows[0]["key_expenditure_line"]

@@ -5,9 +5,11 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+from budget_audit.clusters import ONE_SIDED_NOTE
 from budget_audit.data_quality import HIGH_IMPACT_THRESHOLD
 from budget_audit.findings import FUND_NAMES
 from budget_audit.manual_corrections import ManualCorrectionSummary
+from budget_audit.priority_areas import RELATED_ITEMS_PREFACE
 from budget_audit.questions import dedupe_questions
 
 # Funds that have been extracted, reviewed, and reconciled and are covered by
@@ -251,25 +253,47 @@ def render_priority_areas_section(priority_areas_path: Path | None) -> str:
         "data_quality_driven": "data-quality driven",
     }
     for rank, row in enumerate(rows, start=1):
-        depends_note = (
-            "\n\n_This finding depends on a traceable manual correction; verify correction metadata "
-            "before relying on it._"
-            if row.get("depends_on_manual_correction") == "true"
-            else ""
-        )
-        sections.append(
-            f"### {rank}. {row['title']}\n\n"
-            f"**Funds:** {row['funds']} &nbsp;&nbsp; **Pattern:** {pattern_labels.get(row['pattern'], row['pattern'])}\n\n"
-            f"{row['why_it_matters']}\n\n"
-            f"**Dollar amounts:** {row['dollar_amounts'] or '(not applicable)'}\n\n"
-            f"**Questions:** {row['questions']}\n\n"
-            f"Source/evidence: {row['evidence']}"
-            f"{depends_note}\n"
-        )
+        parts = [
+            f"### {rank}. {row['title']}",
+            f"**Funds:** {row['funds']} &nbsp;&nbsp; **Pattern:** {pattern_labels.get(row['pattern'], row['pattern'])}",
+            row["why_it_matters"],
+        ]
+        if row.get("pattern") == "one_sided":
+            parts.append(f"_{ONE_SIDED_NOTE}_")
+        if row.get("why_normal"):
+            parts.append(f"**Why this may be normal:** {row['why_normal']}")
+        parts.append(f"**Dollar amounts:** {row['dollar_amounts'] or '(not applicable)'}")
+        parts.append(f"**Questions:** {row['questions']}")
+        if row.get("first_records_request"):
+            parts.append(f"**Recommended first records request:** {row['first_records_request']}")
+        if row.get("related_items"):
+            related = row["related_items"].split(" | ")
+            parts.append(
+                f"**{RELATED_ITEMS_PREFACE}** (the packet alone does not confirm a connection):\n\n"
+                + "\n".join(f"- {item}" for item in related)
+            )
+        evidence = row["evidence"].split(" | ")
+        parts.append("Source/evidence:\n\n" + "\n".join(f"- {item}" for item in evidence))
+        if row.get("depends_on_manual_correction") == "true":
+            parts.append(
+                "_This finding depends on a traceable manual correction; verify correction metadata "
+                "before relying on it._"
+            )
+        sections.append("\n\n".join(parts) + "\n")
     return "\n".join(sections)
 
 
-def render_top_clusters_section(clusters_path: Path | None, n: int = 10, narrative_n: int = 5) -> str:
+def render_top_clusters_section(
+    clusters_path: Path | None,
+    n: int = 10,
+    narrative_n: int = 5,
+    priority_cluster_ids: set[str] | None = None,
+) -> str:
+    """Render the top-clusters table plus narratives. Narratives cover the
+    top narrative_n clusters by magnitude AND every cluster referenced by a
+    priority follow-up area (priority_cluster_ids) -- a cluster important
+    enough for the priority list should never be a bare table row.
+    """
     if clusters_path is None:
         return "## Top clusters\n\nNo clusters were generated for this report.\n"
 
@@ -277,10 +301,13 @@ def render_top_clusters_section(clusters_path: Path | None, n: int = 10, narrati
     if not rows:
         return "## Top clusters\n\nNo clusters were generated for this report.\n"
 
+    priority_cluster_ids = priority_cluster_ids or set()
+
     def magnitude(row: dict[str, str]) -> int:
         return abs(int(row["revenue_total"])) + abs(int(row["expenditure_total"]))
 
-    top_rows = sorted(rows, key=magnitude, reverse=True)[:n]
+    ranked = sorted(rows, key=magnitude, reverse=True)
+    top_rows = ranked[:n]
     table_rows = [
         [
             row["fund_number"],
@@ -299,8 +326,15 @@ def render_top_clusters_section(clusters_path: Path | None, n: int = 10, narrati
         table_rows,
     )
 
+    narrative_rows = list(top_rows[:narrative_n])
+    narrative_ids = {row["cluster_id"] for row in narrative_rows}
+    for row in ranked:
+        if row["cluster_id"] in priority_cluster_ids and row["cluster_id"] not in narrative_ids:
+            narrative_rows.append(row)
+            narrative_ids.add(row["cluster_id"])
+
     narrative_lines = ["### What these clusters appear to represent\n"]
-    for row in top_rows[:narrative_n]:
+    for row in narrative_rows:
         narrative_lines.append(f"**Fund {row['fund_number']} / {row['prefix']}:** {row['narrative']}\n")
 
     return (
@@ -563,9 +597,15 @@ def render_report(
     report_date = report_date or date.today()
 
     priority_area_titles: list[str] = []
+    priority_cluster_ids: set[str] = set()
     if priority_areas_path is not None:
         priority_rows = list(csv.DictReader(priority_areas_path.open(encoding="utf-8")))
         priority_area_titles = [row["title"] for row in priority_rows]
+        priority_cluster_ids = {
+            row["priority_area_id"].removeprefix("cluster-")
+            for row in priority_rows
+            if row["priority_area_id"].startswith("cluster-")
+        }
 
     high_impact_dq_count = 0
     if data_quality_path is not None:
@@ -588,7 +628,7 @@ def render_report(
     if verbosity != "summary":
         sections.extend(
             [
-                render_top_clusters_section(clusters_path),
+                render_top_clusters_section(clusters_path, priority_cluster_ids=priority_cluster_ids),
                 render_top_absolute_changes_section(top_changes_path),
                 render_top_percentage_changes_section(top_changes_path),
                 render_high_impact_data_quality_section(data_quality_path),
