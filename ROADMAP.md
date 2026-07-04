@@ -99,6 +99,7 @@ Goal: validate against real local documents.
 - [x] Continue extraction with Fund 151 Debt Service (pages 143-149).
 - [x] Continue extraction with Fund 171 General Capital Projects (pages 150-152). See issue #7.
 - [x] Continue extraction with Fund 172 Community Development (pages 153-155). See issue #8.
+- [x] Continue extraction with Fund 202 Nursing Home (pages 156-158). See issue #9. **All funds in the packet are now extracted and reconciled.**
 - [~] Extract salary-related line items across funds.
 - [ ] Compare investment policy versions.
 - [ ] Build first public-facing summary. See issue #2.
@@ -113,9 +114,9 @@ Goal: make the tool useful beyond one packet or one county.
 - [ ] Add documentation for journalists and citizens.
 - [ ] Consider a static site output.
 
-## Current checkpoint — 2026-06-30 packet, pages 23-155
+## Current checkpoint — 2026-06-30 packet, pages 23-158 (full packet)
 
-The current working slice covers the Weakley County Finance, Ways, and Means packet budget pages 23-155. The pipeline can render/OCR pages, extract OCR rows (including total/subtotal lines, not just account rows), enrich with page-review metadata, classify rows, apply manual corrections (with whitespace-normalized matching and unmatched/ambiguous detection), create review queues, summarize, reconcile selected funds, and reconcile subtotal groups against their own source total lines.
+**All fund extraction for this packet is complete.** The current working slice covers the entire Weakley County Finance, Ways, and Means packet budget pages 23-158 -- all ten funds. The pipeline can render/OCR pages, extract OCR rows (including total/subtotal lines, not just account rows), enrich with page-review metadata, classify rows, apply manual corrections (with whitespace-normalized matching and unmatched/ambiguous detection), create review queues, summarize, reconcile selected funds, and reconcile subtotal groups against their own source total lines.
 
 Known validated reconciliation checkpoint:
 
@@ -130,10 +131,11 @@ Known validated reconciliation checkpoint:
 | 151 | Reconciled after correction overlay | Revenue 1,021,582; expenditures 1,261,204; net -239,622 (matches packet's own printed deficit exactly). |
 | 171 | Reconciled, no corrections needed | Revenue 0; expenditures 37,524; net -37,524 (matches packet's own printed deficit exactly). |
 | 172 | Reconciled after correction overlay | Revenue 1,579,857; expenditures 1,755,396; net -175,539 (matches packet's own printed deficit exactly). Worst OCR quality of any fund so far; found and filed issue #14 (corrections.py add-action can't represent transfer/total row types). |
+| 202 | Reconciled after correction overlay | Revenue 0; expenditures 0; net 0 -- entirely zeroed-out FY 2026-27 budget (fund appears wound down). |
 
-Next best milestones (all remaining fund extraction before starting Phase 5 analysis work, per project decision 2026-07-04):
+Next best milestones (fund extraction is done; per project decision 2026-07-04, Phase 5 analysis work starts now):
 
-1. Continue extraction/page-review metadata with Fund 202 Nursing Home (pages 156-158) -- the last fund in the packet. See issue #9.
-2. Only then: adopt the fuller finding taxonomy/clustering/public-records-question spec in `docs/report-design.md` for the analysis/report layer. See issue #12.
-3. Compare investment policy versions (Resolution 2026-52) -- separate document/policy-text analysis, not fund extraction. See issue #10.
-4. Consider issue #14 (corrections.py add-action row_type limitation) before/during Fund 202 if a similar gap is found there.
+1. Adopt the fuller finding taxonomy/clustering/public-records-question spec in `docs/report-design.md` for the analysis/report layer, re-running against all 10 reconciled funds. See issue #12.
+2. Compare investment policy versions (Resolution 2026-52) -- separate document/policy-text analysis, not fund extraction. See issue #10.
+3. Decide the raw public PDF storage policy. See issue #11.
+4. Consider issue #14 (corrections.py add-action row_type limitation) if it blocks future correction work.
