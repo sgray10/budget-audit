@@ -48,7 +48,7 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Closed -- implemented in #16. **All fund extraction now complete.** |
 | #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Open |
 | #11 | Low | Decide raw public PDF storage policy. | Open |
-| #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Open |
+| #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Closed -- implemented across #17/#18/#23/#24 (Codex) and #25 |
 | #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Open |
 
 ## Backlog items
