@@ -39,7 +39,7 @@ This milestone is now fully complete.
 
 Source of truth is GitHub issues; this table is a quick index. Update it when issues open/close.
 
-**As of 2026-07-04 (later same day), issue #35 (report v3 refinement) is in progress; everything else is closed.**
+**As of 2026-07-04 (later same day), every tracked issue is closed** -- there is no open backlog item. See `ROADMAP.md`'s Phase 7 for the next likely direction (generalization beyond this one packet), or open a new issue for the next concrete piece of work.
 
 | Issue | Priority | Purpose | Status |
 |---:|---|---|---|
@@ -54,7 +54,7 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #11 | Low | Decide raw public PDF storage policy. | Closed -- implemented in #28 |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Closed -- implemented across #17/#18/#23/#24 (Codex) and #25 |
 | #32 | Medium | Restructure report into a civic-intelligence review packet (executive summary, priority areas, fine-grained classification, data-quality gating, appendices). | Closed -- implemented in #33 |
-| #35 | Medium | Report v3: cross-linking, cluster-type refinement, DQ escalation, actionable priority areas. | Implemented, PR pending -- closes on merge |
+| #35 | Medium | Report v3: cross-linking, cluster-type refinement, DQ escalation, actionable priority areas. | Closed -- implemented in #36 |
 | #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Closed -- implemented in #26 |
 | #20 | Medium | Add top absolute-dollar and percentage change report sections (sub-issue of #12). | Closed -- implemented in #17/#18/#23/#24 (Codex) |
 | #21 | Medium | Cluster related findings before rendering public-facing report output (sub-issue of #12). | Closed -- implemented in #25 |
