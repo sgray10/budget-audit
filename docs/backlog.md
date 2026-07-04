@@ -28,14 +28,18 @@ Done:
 
 Remaining:
 
-- [ ] Verify CI status for the checkpoint commits.
-- [ ] Refresh README quick-start commands for the corrected workflow.
-- [ ] Keep generated `data/` artifacts local unless explicitly promoted.
-- [ ] Commit or regenerate local review CSV artifacts for Fund 141 if they should be repo-tracked.
+- [x] Verify CI status for the checkpoint commits. (CI has been green on every push/PR to `main` through PR #30.)
+- [x] Refresh README quick-start commands for the corrected workflow. (`README.md`'s `generate-report` example covers all 10 funds' row files and reconcile paths.)
+- [x] Keep generated `data/` artifacts local unless explicitly promoted. (`data/interim/` and `data/processed/` stay gitignored; `data/raw/` is the one explicitly-promoted exception -- see issue #11.)
+- [x] Commit or regenerate local review CSV artifacts for Fund 141 if they should be repo-tracked. (`review/weakley-fwm-2026-06-30/page_review_086_138.csv` and `manual_row_corrections_086_138.csv` are both tracked.)
+
+This milestone is now fully complete.
 
 ## Active issues
 
 Source of truth is GitHub issues; this table is a quick index. Update it when issues open/close.
+
+**As of 2026-07-04, every tracked issue is closed** -- there is no open backlog item. See `ROADMAP.md`'s Phase 7 for the next likely direction (generalization beyond this one packet), or open a new issue for the next concrete piece of work.
 
 | Issue | Priority | Purpose | Status |
 |---:|---|---|---|
@@ -76,11 +80,13 @@ Current reconciliation is fund-level. Fund 141 showed why page/group subtotal re
 
 Acceptance criteria:
 
-- [ ] Extract subtotal and total lines from OCR text.
-- [ ] Compare page/group line-item totals to source subtotal lines.
-- [ ] Support continuation-page groups where totals appear on a later page.
-- [ ] Output mismatch CSV.
-- [ ] Include page number, section, expected, actual, difference, and confidence.
+- [x] Extract subtotal and total lines from OCR text. (`TOTAL_ROW_RE` in `ocr_table_rows.py`)
+- [x] Compare page/group line-item totals to source subtotal lines.
+- [x] Support continuation-page groups where totals appear on a later page. (groups follow document order across `(fund_number, page_number, line_number)`, not a per-page boundary)
+- [x] Output mismatch CSV.
+- [x] Include page number, section, expected, actual, difference, and confidence.
+
+Implemented in `src/budget_audit/subtotal_reconcile.py` (`reconcile-subtotals` CLI command), used across every fund's checkpoint.
 
 ### Generate first reviewed-funds intelligence report — issue #2
 
@@ -94,11 +100,13 @@ Acceptance criteria:
 - [x] Add materiality thresholds.
 - [ ] Identify one-dollar and zero-dollar placeholders.
 - [ ] Identify grant/program lines appearing, disappearing, or materially changing. (material deltas are flagged generally; grant/program-specific tagging not yet distinguished)
+- [x] Identify one-dollar and zero-dollar placeholders. (`data_quality.py`'s `placeholder_amount` warning, $1/-$1 values; true $0 values are common and legitimate in this dataset -- e.g. Fund 202's wound-down budget -- so they're not flagged as placeholders on their own)
+- [x] Identify grant/program lines appearing, disappearing, or materially changing. (`findings._categorize_delta`'s `grant_roll_on`/`grant_roll_off` categories -- a coarse heuristic keyed on new/eliminated status plus "grant" in the label; less literal grant naming won't be caught, see `docs/report-design.md` "Status")
 - [x] Generate neutral review questions, not accusations.
 - [x] Preserve source page references.
 - [x] Include methodology and limitations.
 
-Implemented in `src/budget_audit/analyze.py`, `src/budget_audit/compensation.py`, `src/budget_audit/findings.py`, `src/budget_audit/report.py` (`analyze-deltas`, `analyze-compensation`, `build-findings`, `report`, and umbrella `generate-report` CLI commands). First checkpoint: 250 material deltas, 3 compensation flags, 5 reconciliation findings across funds 101/116/122/131/141 -- see `docs/weakley-fwm-2026-06-30-workflow.md`. Scope explicitly excludes funds 143+ (pages 139+, not yet extracted).
+Implemented in `src/budget_audit/analyze.py`, `src/budget_audit/compensation.py`, `src/budget_audit/findings.py`, `src/budget_audit/report.py`, `src/budget_audit/data_quality.py`, `src/budget_audit/clusters.py`, `src/budget_audit/top_changes.py` (`generate-report` CLI command runs the full chain). Now covers all 10 reconciled funds with the fuller `docs/report-design.md` taxonomy -- see that document's "Status" section for exactly what's implemented vs. deferred, and `docs/weakley-fwm-2026-06-30-workflow.md` for the original 5-fund checkpoint this grew from.
 
 ### Continue extraction with Fund 143 — issue #3
 
@@ -122,11 +130,13 @@ Fund 141 required one balancing correction because replacement matching did not 
 
 Acceptance criteria:
 
-- [ ] Review the correction row-key strategy.
-- [ ] Support replacement matching that tolerates OCR artifacts in non-target amount columns when page/account/label context is strong enough.
-- [ ] Detect unmatched replacement corrections and fail or warn loudly.
-- [ ] Include tests for successful replacement, failed replacement, and ambiguous replacement cases.
-- [ ] Document when to use add vs replace vs balancing correction rows.
+- [x] Review the correction row-key strategy. (`row_key()` in `corrections.py`: whitespace-normalized `(document_id, page_number, account, label)` tuple match)
+- [x] ~~Support replacement matching that tolerates OCR artifacts in non-target amount columns~~ Decided against: matching stays whitespace-normalization only, deliberately not fuzzy/edit-distance -- a corrections tool silently misapplying a fix to the wrong row is worse than a loud failure. See `docs/corrections.md` "Scope boundary."
+- [x] Detect unmatched replacement corrections and fail or warn loudly. (`unmatched_replacements`/`ambiguous_extracted_matches` in `CorrectionStats`; raises under `--strict`, warns otherwise)
+- [x] Include tests for successful replacement, failed replacement, and ambiguous replacement cases. (`tests/test_corrections.py`)
+- [x] Document when to use add vs replace vs balancing correction rows. (`docs/corrections.md`)
+
+Implemented in `src/budget_audit/corrections.py`. The one criterion not literally satisfied (fuzzy tolerance) was a deliberate scope decision, not an oversight -- documented rather than silently dropped.
 
 ### Build compensation summary output
 
