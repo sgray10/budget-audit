@@ -6,19 +6,22 @@ GitHub issues are now available through the connector. This file remains as the 
 
 Goal: make the reviewed Weakley packet range reproducible from OCR text through corrected reconciliation.
 
-Status: mostly complete for pages 23-138. Funds 101, 116, 122, 131, and 141 reconcile to reviewed summary totals.
+Status: mostly complete for pages 23-149. Funds 101, 116, 122, 131, 141, 143, and 151 reconcile to reviewed summary totals.
 
 Done:
 
-- Page-filtered OCR extraction.
+- Page-filtered OCR extraction, including total/subtotal lines (not just account rows).
 - Page-review metadata enrichment.
 - Row classification.
 - OCR review queue.
-- Row correction overlay.
+- Row correction overlay, with whitespace-normalized matching and unmatched/ambiguous detection (`--strict`).
+- Subtotal-level reconciliation (`reconcile-subtotals`).
 - Reviewed-range workflow runner.
 - Per-fund reconciliation.
 - Checkpoint doc for pages 23-85.
 - Checkpoint doc for Fund 141 pages 86-138.
+- Checkpoint doc for Fund 143 pages 139-142.
+- Checkpoint doc for Fund 151 pages 143-149.
 
 Remaining:
 
