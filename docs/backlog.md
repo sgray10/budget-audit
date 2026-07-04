@@ -41,11 +41,12 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #3 | Medium | Continue extraction with Fund 143. | Closed -- implemented in #5 |
 | #4 | Medium | Improve correction replacement matching. | Closed -- implemented in #5 |
 | #7 | Medium | Extract and reconcile Fund 171 General Capital Projects (pages 150-152). | Closed -- implemented in #13 |
-| #8 | Medium | Extract and reconcile Fund 172 Community Development (pages 153-155). | Open |
+| #8 | Medium | Extract and reconcile Fund 172 Community Development (pages 153-155). | Implemented, PR pending -- closes on merge |
 | #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Open |
 | #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Open |
 | #11 | Low | Decide raw public PDF storage policy. | Open |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Open |
+| #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Open |
 
 ## Backlog items
 

@@ -1,0 +1,4 @@
+document_id,page_number,section_hint,page_type,fund_number,fund_name,department,division,contains_budget_table,contains_salary_or_compensation,review_confidence,review_notes
+weakley-fwm-2026-06-30,153,Fund 172 Community Development revenues,budget_table,172,Community Development,Revenue,,true,false,low,Reviewed from OCR text; heavily garbled OCR (em-dash artifact, split amount fields across lines, one total row mislabeled Federal instead of State). Needs corrections.
+weakley-fwm-2026-06-30,154,Fund 172 Community Development expenditures,budget_table,172,Community Development,Community Development,,true,false,high,Reviewed from OCR text; clean OCR, hand-verified against printed totals.
+weakley-fwm-2026-06-30,155,Fund 172 Community Development summary,summary,172,Community Development,Summary,,true,false,high,Reviewed from OCR text; fund-balance summary page restating revenue/expenditure totals.
