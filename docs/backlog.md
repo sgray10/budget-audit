@@ -49,7 +49,10 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Open |
 | #11 | Low | Decide raw public PDF storage policy. | Open |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Closed -- implemented across #17/#18/#23/#24 (Codex) and #25 |
-| #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Implemented, PR pending -- closes on merge |
+| #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Implemented, PR pending -- closes on merge (#26) |
+| #20 | Medium | Add top absolute-dollar and percentage change report sections (sub-issue of #12). | Closed -- implemented in #17/#18/#23/#24 (Codex) |
+| #21 | Medium | Cluster related findings before rendering public-facing report output (sub-issue of #12). | Closed -- implemented in #25 |
+| #22 | Medium | Generate neutral public-records question candidates from report findings (sub-issue of #12). | Closed -- implemented in #25 |
 
 ## Backlog items
 
