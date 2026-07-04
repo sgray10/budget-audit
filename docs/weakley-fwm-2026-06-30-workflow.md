@@ -10,6 +10,8 @@ Expected local path:
 
 Generated local artifacts are intentionally kept under `data/` and should not be committed unless explicitly promoted.
 
+Manual row corrections (`--corrections` on `run-reviewed-range` / `apply-row-corrections`) are documented in `docs/corrections.md` -- when to use `add` vs `replace` vs a last-resort balancing correction, and how unmatched/ambiguous replace corrections are detected.
+
 ## Current workflow
 
 Render the budget packet pages to images:
@@ -129,6 +131,17 @@ Current Fund 101 reconciliation:
 | Unparsed amounts | 0 |
 
 This suggests Fund 101 is close to balanced in the OCR-derived working dataset, with a net difference of -4,407 after transfers.
+
+## Subtotal-level reconciliation
+
+Corrected/classified row CSVs can be checked against their own source `Sub-Total`/`Total` lines (now extracted for the first time -- see below) to localize OCR/extraction gaps at a page/group level instead of only at the fund level:
+
+    budget-audit reconcile-subtotals data/processed/ocr_table_rows_86_138_corrected.csv \
+      --out data/processed/subtotal_mismatches_86_138.csv
+
+Grouping is positional (consecutive `line_item` rows between two `total` rows, in `page_number`/`line_number` document order), not semantic -- it does not know which department/object-class a subtotal logically belongs to. Spot-checking against the real Fund 141 data (pages 86-138) confirmed this correctly localizes genuine issues: two adjacent groups on page 96 showed exactly-offsetting +2,000/-2,000 mismatches, pinpointing a single OCR-misordered account row (`413 FRM Drugs & Medical Supplies`) that landed in the wrong group.
+
+**Known limitation:** if a run of manually `add`-ed line items (e.g. page 106's corrections, added because the extractor never captured that page) has no accompanying `total`/`Sub-Total` boundary row of its own, the tool has no way to know a boundary is missing -- it merges those rows into whichever group the *next* real total row closes, producing one wide-span, lower-precision mismatch instead of several small, precise ones. This does not affect fund-level reconciliation (which only sums `line_item` rows and ignores this grouping entirely), only the subtotal-level mismatch report's precision in that specific area. Confirmed on pages 105-107 of the Fund 141 range.
 
 ## Analysis and report generation
 

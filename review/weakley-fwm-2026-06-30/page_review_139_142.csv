@@ -1,0 +1,5 @@
+document_id,page_number,section_hint,page_type,fund_number,fund_name,department,division,contains_budget_table,contains_salary_or_compensation,review_confidence,review_notes
+weakley-fwm-2026-06-30,139,Fund 143 Child Nutrition revenues,budget_table,143,Child Nutrition,Revenue,Food Services,true,false,high,Reviewed from OCR text; clean OCR, no salary lines on this revenue page.
+weakley-fwm-2026-06-30,140,Fund 143 Child Nutrition expenditures,budget_table,143,Child Nutrition,Child Nutrition,Food Services,true,true,high,Reviewed from OCR text; Personal Services and Employee Benefits sections present.
+weakley-fwm-2026-06-30,141,Fund 143 Child Nutrition expenditures,budget_table,143,Child Nutrition,Child Nutrition,Food Services,true,false,high,Reviewed from OCR text; Other Charges and Capital Outlay sections, no salary lines on this page.
+weakley-fwm-2026-06-30,142,Fund 143 Child Nutrition summary,summary,143,Child Nutrition,Summary,,true,false,high,Reviewed from OCR text; fund-balance summary page restating revenue/expenditure totals.

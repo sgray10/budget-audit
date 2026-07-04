@@ -25,6 +25,7 @@ from budget_audit.report import load_reconcile_summary, render_report
 from budget_audit.report_workflow import run_report_workflow
 from budget_audit.review import build_ocr_review_queue
 from budget_audit.row_classify import classify_ocr_rows
+from budget_audit.subtotal_reconcile import reconcile_subtotals
 from budget_audit.summarize import summarize_classified_ocr_rows
 from budget_audit.workflow import parse_fund_list, run_reviewed_range_workflow
 
@@ -310,15 +311,41 @@ def review_ocr_rows_cmd(rows_path: Path, out_path: Path) -> None:
     required=True,
 )
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
-def apply_row_corrections_cmd(rows_path: Path, corrections_path: Path, out_path: Path) -> None:
+@click.option(
+    "--strict/--no-strict",
+    default=False,
+    show_default=True,
+    help="Raise if any replace correction is unmatched or ambiguous, instead of warning.",
+)
+def apply_row_corrections_cmd(
+    rows_path: Path, corrections_path: Path, out_path: Path, strict: bool
+) -> None:
     """Apply manual row corrections to an extracted/classified OCR row CSV."""
-    stats = apply_row_corrections(rows_path, corrections_path, out_path)
+    stats = apply_row_corrections(rows_path, corrections_path, out_path, strict=strict)
     console.print(
         f"wrote {out_path} "
         f"({stats['output_rows']} rows; "
         f"{stats['replaced']} replaced; "
         f"{stats['added']} added)"
     )
+    if stats["unmatched_replacements"]:
+        console.print(
+            f"[yellow]warning: {len(stats['unmatched_replacements'])} unmatched replace correction(s)[/yellow]"
+        )
+        for item in stats["unmatched_replacements"]:
+            console.print(f"  [yellow]unmatched:[/yellow] {item}")
+    if stats["ambiguous_extracted_matches"]:
+        console.print(
+            f"[yellow]warning: {len(stats['ambiguous_extracted_matches'])} ambiguous extracted-row match(es)[/yellow]"
+        )
+        for item in stats["ambiguous_extracted_matches"]:
+            console.print(f"  [yellow]ambiguous:[/yellow] {item}")
+    if stats["ambiguous_correction_keys"]:
+        console.print(
+            f"[yellow]warning: {len(stats['ambiguous_correction_keys'])} duplicate correction key(s) (last one wins)[/yellow]"
+        )
+        for item in stats["ambiguous_correction_keys"]:
+            console.print(f"  [yellow]duplicate:[/yellow] {item}")
 
 
 
@@ -395,6 +422,28 @@ def reconcile_cmd(rows_path: Path, fund_number: str, out_path: Path) -> None:
         f"revenue with transfers={stats['revenue_with_transfers']}; "
         f"expenditures with transfers={stats['expenditure_with_transfers']}; "
         f"net={stats['net_with_transfers']}"
+    )
+
+
+@main.command("reconcile-subtotals")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+@click.option(
+    "--tolerance",
+    default=0,
+    show_default=True,
+    type=int,
+    help="Allowed absolute-dollar difference before a group is flagged as a mismatch.",
+)
+def reconcile_subtotals_cmd(rows_path: Path, out_path: Path, tolerance: int) -> None:
+    """Compare corrected line-item subtotal groups to their source total/subtotal lines."""
+    stats = reconcile_subtotals(rows_path, out_path, tolerance=Decimal(tolerance))
+    console.print(
+        f"wrote {out_path}: "
+        f"{stats['compared']} groups compared; "
+        f"{stats['matched']} matched; "
+        f"{stats['mismatched']} mismatched; "
+        f"{stats['skipped_zero_line_item_groups']} roll-up totals skipped"
     )
 
 
