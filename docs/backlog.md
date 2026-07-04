@@ -47,7 +47,7 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #8 | Medium | Extract and reconcile Fund 172 Community Development (pages 153-155). | Closed -- implemented in #15 |
 | #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Closed -- implemented in #16. **All fund extraction now complete.** |
 | #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Open |
-| #11 | Low | Decide raw public PDF storage policy. | Open |
+| #11 | Low | Decide raw public PDF storage policy. | Implemented, PR pending -- closes on merge |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Closed -- implemented across #17/#18/#23/#24 (Codex) and #25 |
 | #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Closed -- implemented in #26 |
 | #20 | Medium | Add top absolute-dollar and percentage change report sections (sub-issue of #12). | Closed -- implemented in #17/#18/#23/#24 (Codex) |
@@ -141,12 +141,14 @@ Acceptance criteria:
 
 Implemented in `src/budget_audit/compensation.py` (`analyze-compensation` CLI command). Heuristic is coarse and explicitly low-confidence; see `docs/weakley-fwm-2026-06-30-workflow.md` "Analysis and report generation".
 
-### Decide raw public PDF storage policy
+### Decide raw public PDF storage policy -- issue #11
 
 The project currently assumes raw PDFs live locally in `data/raw/` and are not committed.
 
 Acceptance criteria:
 
-- [ ] Decide whether raw public packets are stored externally, attached as releases, or never mirrored.
-- [ ] Document the policy in README or methodology docs.
-- [ ] Ensure `.gitignore` and docs match the policy.
+- [x] Decide whether raw public packets are stored externally, attached as releases, or never mirrored. (Decision: committed directly under `data/raw/` in this repo -- these are public records, and committing them makes extraction independently verifiable.)
+- [x] Document the policy in README or methodology docs.
+- [x] Ensure `.gitignore` and docs match the policy.
+
+Implemented: `data/raw/` removed from `.gitignore`, `data/raw/FWM-Meeting-Packet-6-30-26.pdf` committed, policy documented in `docs/methodology.md` "Preserve" and `README.md` "Data handling principles".

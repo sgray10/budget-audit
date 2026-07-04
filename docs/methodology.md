@@ -28,6 +28,8 @@ Minimum metadata:
 
 Raw files should be immutable. Do not edit PDFs in place. Derived outputs go into `data/interim/` and `data/processed/`.
 
+**Storage policy:** raw source documents under `data/raw/` are committed to this public repository. These are public government records (meeting packets, budget documents), and committing them alongside the derived data lets anyone independently re-run extraction against the exact original and verify the pipeline's output without a separate records request. `data/interim/` and `data/processed/` stay untracked -- they're regenerable from `data/raw/` plus the tracked `review/` CSVs. If a record that is not itself public is ever acquired for this project (not expected under its normal scope), do not commit it under `data/raw/`; treat that as an exception requiring its own decision, not a default.
+
 Recommended local layout:
 
 ```text
