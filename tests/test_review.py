@@ -35,3 +35,37 @@ def test_review_reasons_flags_short_label() -> None:
         "parse_status": "parsed",
     }
     assert "short_or_missing_label" in review_reasons(row)
+
+
+def test_review_reasons_does_not_flag_blank_account_on_total_row() -> None:
+    row = {
+        "account": "",
+        "label": "Sub-Total",
+        "raw_line": "Sub-Total 100 200 300 400",
+        "actual_24_25": "100",
+        "budget_25_26": "200",
+        "actual_25_26": "300",
+        "budget_26_27": "400",
+        "fund_number": "143",
+        "section_hint": "Fund 143 Child Nutrition expenditures",
+        "parse_status": "parsed",
+        "row_type": "total",
+    }
+    assert "suspicious_account" not in review_reasons(row)
+
+
+def test_review_reasons_flags_blank_account_on_line_item_row() -> None:
+    row = {
+        "account": "",
+        "label": "Some Line",
+        "raw_line": "Some Line 100 200 300 400",
+        "actual_24_25": "100",
+        "budget_25_26": "200",
+        "actual_25_26": "300",
+        "budget_26_27": "400",
+        "fund_number": "143",
+        "section_hint": "Fund 143 Child Nutrition expenditures",
+        "parse_status": "parsed",
+        "row_type": "line_item",
+    }
+    assert "suspicious_account" in review_reasons(row)

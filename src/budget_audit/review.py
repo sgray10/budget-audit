@@ -38,7 +38,9 @@ def review_reasons(row: dict[str, str]) -> list[str]:
     label = row.get("label", "")
     raw_line = row.get("raw_line", "")
 
-    if account_looks_suspicious(account):
+    # A blank account is expected and correct for a total/subtotal row (it
+    # has no account number in the source), not a data-quality issue.
+    if row.get("row_type") != "total" and account_looks_suspicious(account):
         reasons.append("suspicious_account")
 
     if len(label.strip()) < 3:
