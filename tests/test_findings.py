@@ -1,4 +1,5 @@
 import csv
+from decimal import Decimal
 from pathlib import Path
 
 from budget_audit.findings import (
@@ -130,10 +131,10 @@ def test_findings_from_structural_changes() -> None:
         fund_number="202",
         fund_name="Nursing Home",
         direction="zeroed_out",
-        revenue_old=1633722,
-        revenue_new=0,
-        expenditure_old=1627354,
-        expenditure_new=0,
+        revenue_old=Decimal("1633722"),
+        revenue_new=Decimal("0"),
+        expenditure_old=Decimal("1627354"),
+        expenditure_new=Decimal("0"),
         sample_labels=["Patient Charges"],
     )
 
@@ -149,9 +150,9 @@ def test_findings_from_grant_capital_pairs() -> None:
         fund_number="172",
         fund_name="Community Development",
         revenue_label="Other State Grants - Connected Communities Facilities",
-        revenue_delta=1443340,
+        revenue_delta=Decimal("1443340"),
         expenditure_label="Building Construction",
-        expenditure_delta=1603710,
+        expenditure_delta=Decimal("1603710"),
     )
 
     findings = findings_from_grant_capital_pairs([pair])
@@ -234,19 +235,19 @@ def test_build_findings_includes_structural_and_grant_capital_findings(tmp_path:
         fund_number="202",
         fund_name="Nursing Home",
         direction="zeroed_out",
-        revenue_old=1000000,
-        revenue_new=0,
-        expenditure_old=1000000,
-        expenditure_new=0,
+        revenue_old=Decimal("1000000"),
+        revenue_new=Decimal("0"),
+        expenditure_old=Decimal("1000000"),
+        expenditure_new=Decimal("0"),
         sample_labels=[],
     )
     pair = GrantFundedCapitalPair(
         fund_number="172",
         fund_name="Community Development",
         revenue_label="Grant",
-        revenue_delta=100000,
+        revenue_delta=Decimal("100000"),
         expenditure_label="Construction",
-        expenditure_delta=110000,
+        expenditure_delta=Decimal("110000"),
     )
 
     stats = build_findings(

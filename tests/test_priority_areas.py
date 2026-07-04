@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 
 from budget_audit.data_quality import DataQualityWarning
@@ -15,10 +16,10 @@ def test_build_priority_areas_includes_structural_changes_first(tmp_path: Path) 
         fund_number="202",
         fund_name="Nursing Home",
         direction="zeroed_out",
-        revenue_old=1633722,
-        revenue_new=0,
-        expenditure_old=1627354,
-        expenditure_new=0,
+        revenue_old=Decimal("1633722"),
+        revenue_new=Decimal("0"),
+        expenditure_old=Decimal("1627354"),
+        expenditure_new=Decimal("0"),
         sample_labels=["Patient Charges"],
     )
 
@@ -41,9 +42,9 @@ def test_build_priority_areas_dedupes_cluster_against_fund_level_pair(tmp_path: 
         fund_number="172",
         fund_name="Community Development",
         revenue_label="Other State Grants - Connected Communities Facilities",
-        revenue_delta=1443340,
+        revenue_delta=Decimal("1443340"),
         expenditure_label="Building Construction",
-        expenditure_delta=1603710,
+        expenditure_delta=Decimal("1603710"),
     )
 
     areas = build_priority_areas(clusters_path, [], [pair], [])
@@ -80,10 +81,10 @@ def test_build_priority_areas_flags_manual_correction_dependency(tmp_path: Path)
         fund_number="202",
         fund_name="Nursing Home",
         direction="zeroed_out",
-        revenue_old=1000000,
-        revenue_new=0,
-        expenditure_old=1000000,
-        expenditure_new=0,
+        revenue_old=Decimal("1000000"),
+        revenue_new=Decimal("0"),
+        expenditure_old=Decimal("1000000"),
+        expenditure_new=Decimal("0"),
         sample_labels=[],
     )
 
