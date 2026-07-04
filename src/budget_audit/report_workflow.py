@@ -9,6 +9,7 @@ from budget_audit.consolidate import consolidate_reviewed_rows
 from budget_audit.data_quality import analyze_data_quality
 from budget_audit.findings import build_findings
 from budget_audit.report import load_reconcile_summary, render_report
+from budget_audit.top_changes import analyze_top_changes
 
 
 @dataclass(frozen=True)
@@ -19,6 +20,7 @@ class ReportWorkflowPaths:
     compensation_rollup: Path
     compensation_flags: Path
     data_quality_warnings: Path
+    top_changes: Path
     findings: Path
     report_md: Path
 
@@ -31,6 +33,7 @@ def report_workflow_paths(out_dir: Path, reports_dir: Path, report_filename: str
         compensation_rollup=out_dir / "compensation_rollup.csv",
         compensation_flags=out_dir / "compensation_flags.csv",
         data_quality_warnings=out_dir / "data_quality_warnings.csv",
+        top_changes=out_dir / "top_changes.csv",
         findings=out_dir / "findings.csv",
         report_md=reports_dir / report_filename,
     )
@@ -54,6 +57,7 @@ def run_report_workflow(
     delta_stats = analyze_deltas(paths.consolidated_rows, out_dir, threshold)
     comp_stats = analyze_compensation(paths.consolidated_rows, out_dir)
     data_quality_stats = analyze_data_quality(paths.consolidated_rows, paths.data_quality_warnings)
+    top_change_stats = analyze_top_changes(paths.line_item_deltas, paths.top_changes)
     finding_stats = build_findings(
         paths.line_item_deltas, paths.compensation_flags, reconcile_paths, paths.findings
     )
@@ -61,7 +65,13 @@ def run_report_workflow(
     summaries = [
         load_reconcile_summary(fund, path) for fund, path in sorted(reconcile_paths.items())
     ]
-    render_report(paths.findings, summaries, paths.report_md, data_quality_path=paths.data_quality_warnings)
+    render_report(
+        paths.findings,
+        summaries,
+        paths.report_md,
+        data_quality_path=paths.data_quality_warnings,
+        top_changes_path=paths.top_changes,
+    )
 
     return {
         "consolidated_rows": consolidated_count,
@@ -70,5 +80,6 @@ def run_report_workflow(
         "eliminated_line_rows": delta_stats["eliminated_line_rows"],
         "compensation_needs_review": comp_stats["needs_review_rows"],
         "data_quality_warnings": data_quality_stats["data_quality_warnings"],
+        "top_change_rows": top_change_stats["top_change_rows"],
         "total_findings": finding_stats["total_findings"],
     }
