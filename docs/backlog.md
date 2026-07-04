@@ -36,10 +36,10 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 
 | Issue | Priority | Purpose | Status |
 |---:|---|---|---|
-| #1 | High | Add subtotal-level reconciliation reports. | Implemented in #5; issue not yet closed |
-| #2 | High | Generate the first reviewed-funds intelligence report. | Implemented (commit 29031a7); issue not yet closed |
-| #3 | Medium | Continue extraction with Fund 143. | Implemented in #5; issue not yet closed |
-| #4 | Medium | Improve correction replacement matching. | Implemented in #5; issue not yet closed |
+| #1 | High | Add subtotal-level reconciliation reports. | Closed -- implemented in #5 |
+| #2 | High | Generate the first reviewed-funds intelligence report. | Closed -- implemented (commit 29031a7) |
+| #3 | Medium | Continue extraction with Fund 143. | Closed -- implemented in #5 |
+| #4 | Medium | Improve correction replacement matching. | Closed -- implemented in #5 |
 | #7 | Medium | Extract and reconcile Fund 171 General Capital Projects (pages 150-152). | Open |
 | #8 | Medium | Extract and reconcile Fund 172 Community Development (pages 153-155). | Open |
 | #9 | Medium | Extract and reconcile Fund 202 Nursing Home (pages 156-158). | Open |
