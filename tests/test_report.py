@@ -9,9 +9,11 @@ from budget_audit.report import (
     markdown_table,
     render_data_quality_section,
     render_findings_section,
+    render_public_records_section,
     render_report,
     render_scope_section,
     render_top_changes_section,
+    render_top_clusters_section,
 )
 
 BANNED_WORDS = re.compile(r"\bhidden\b|\bsuspicious\b|\bwrong\b", re.IGNORECASE)
@@ -57,15 +59,58 @@ def test_render_findings_section_uses_neutral_language(tmp_path: Path) -> None:
     findings_path = tmp_path / "findings.csv"
     findings_path.write_text(
         FINDINGS_HEADER
-        + 'delta-1,"Material change: Big Increase (Fund 101)",delta,low,low,'
+        + 'delta-1,"Material change: Big Increase (Fund 101)",needs_human_review,low,low,'
         '"This change is above the configured materiality threshold and needs explanation.",'
-        '"document=doc; page=23","What explains this?",draft\n',
+        '"document=doc; page=23","What explains this?",machine_generated\n',
         encoding="utf-8",
     )
 
     section = render_findings_section(findings_path)
 
-    assert "Material year-over-year changes" in section
+    assert "Other material changes needing review" in section
+    assert not BANNED_WORDS.search(section)
+
+
+def test_render_top_clusters_section_ranks_by_magnitude(tmp_path: Path) -> None:
+    clusters_path = tmp_path / "clusters.csv"
+    clusters_path.write_text(
+        "cluster_id,fund_number,fund_name,prefix,revenue_total,expenditure_total,is_paired,line_item_count,sample_labels\n"
+        "101-OPID,101,General,OPID,90954,123500,true,14,OPID Opioid Settlement Funds\n"
+        "101-BONUS,101,General,BONUS,0,5000,false,3,BONUS Social Security\n",
+        encoding="utf-8",
+    )
+
+    section = render_top_clusters_section(clusters_path)
+
+    assert "## Top clusters" in section
+    assert "OPID" in section
+    assert "BONUS" in section
+    # OPID has the larger combined magnitude (214,454 vs 5,000), so it should
+    # appear first in the ranked table.
+    assert section.index("OPID") < section.index("BONUS")
+    assert not BANNED_WORDS.search(section)
+
+
+def test_render_top_clusters_section_empty(tmp_path: Path) -> None:
+    assert "No clusters" in render_top_clusters_section(None)
+
+
+def test_render_public_records_section_lists_templated_categories_only(tmp_path: Path) -> None:
+    findings_path = tmp_path / "findings.csv"
+    findings_path.write_text(
+        FINDINGS_HEADER
+        + 'grant-1,"New line item: State Grant (Fund 101)",grant_roll_on,medium,low,'
+        '"Needs explanation.","document=doc; page=23",'
+        '"Please provide the grant award letter.",machine_generated\n'
+        + 'nhr-1,"Material change: Something (Fund 101)",needs_human_review,low,low,'
+        '"Needs explanation.","document=doc; page=23","What explains this?",machine_generated\n',
+        encoding="utf-8",
+    )
+
+    section = render_public_records_section(findings_path)
+
+    assert "State Grant" in section
+    assert "Something" not in section
     assert not BANNED_WORDS.search(section)
 
 
@@ -129,7 +174,9 @@ def test_render_report_writes_expected_sections(tmp_path: Path) -> None:
     assert "## Scope" in content
     assert "## Reconciliation summary" in content
     assert "## Data-quality warnings" in content
+    assert "## Top clusters" in content
     assert "## Top changes" in content
     assert "## Findings" in content
+    assert "## Public-records question candidates" in content
     assert "## How to read this report" in content
     assert not BANNED_WORDS.search(content)

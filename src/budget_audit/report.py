@@ -24,11 +24,37 @@ SCOPE_FUNDS = [
 SCOPE_PAGES = "23-158"
 
 CATEGORY_TITLES = {
-    "delta": "Material year-over-year changes",
-    "salary": "Compensation lines needing explanation",
+    "grant_roll_on": "New grant/program revenue or expense",
+    "grant_roll_off": "Grant/program revenue or expense dropping to zero",
+    "capital_project": "Capital projects and large one-time purchases",
+    "contracted_services": "Contracted services",
+    "allocation_change": "Recipient/allocation changes",
+    "personnel_change": "Compensation and benefit lines needing explanation",
+    "needs_human_review": "Other material changes needing review",
     "reconciliation": "Items that do not reconcile in this extraction",
 }
-CATEGORY_ORDER = ["delta", "salary", "reconciliation"]
+CATEGORY_ORDER = [
+    "grant_roll_on",
+    "grant_roll_off",
+    "capital_project",
+    "contracted_services",
+    "allocation_change",
+    "personnel_change",
+    "needs_human_review",
+    "reconciliation",
+]
+# Categories whose findings carry a specific public-records question template
+# (see findings.PUBLIC_RECORDS_QUESTIONS) rather than a generic fallback --
+# these are the ones worth surfacing in the public-records candidates section.
+PUBLIC_RECORDS_CATEGORIES = [
+    "grant_roll_on",
+    "grant_roll_off",
+    "capital_project",
+    "contracted_services",
+    "allocation_change",
+    "personnel_change",
+    "reconciliation",
+]
 
 
 def format_money(value: Decimal | None) -> str:
@@ -159,6 +185,56 @@ def render_top_changes_section(top_changes_path: Path | None) -> str:
     return "\n\n".join(sections)
 
 
+def render_top_clusters_section(clusters_path: Path | None, n: int = 10) -> str:
+    if clusters_path is None:
+        return "## Top clusters\n\nNo clusters were generated for this report.\n"
+
+    rows = list(csv.DictReader(clusters_path.open(encoding="utf-8")))
+    if not rows:
+        return "## Top clusters\n\nNo clusters were generated for this report.\n"
+
+    def magnitude(row: dict[str, str]) -> int:
+        return abs(int(row["revenue_total"])) + abs(int(row["expenditure_total"]))
+
+    top_rows = sorted(rows, key=magnitude, reverse=True)[:n]
+    table_rows = [
+        [
+            row["fund_number"],
+            row["prefix"],
+            "yes" if row["is_paired"] == "true" else "no",
+            row["revenue_total"],
+            row["expenditure_total"],
+            row["line_item_count"],
+            row["sample_labels"],
+        ]
+        for row in top_rows
+    ]
+    return (
+        "## Top clusters\n\n"
+        "Line items sharing a fund and a short label prefix (e.g. a grant or program code), "
+        "ranked by combined revenue+expenditure magnitude. A 'paired' cluster has nonzero "
+        "totals on both the revenue and expenditure side, the signature of a program "
+        "pass-through (grant revenue paired with recipient allocations) worth reviewing together "
+        "rather than as isolated line items.\n\n"
+        + markdown_table(
+            ["Fund", "Prefix", "Paired", "Revenue total", "Expenditure total", "Line items", "Sample labels"],
+            table_rows,
+        )
+    )
+
+
+def render_public_records_section(findings_path: Path) -> str:
+    rows = list(csv.DictReader(findings_path.open(encoding="utf-8")))
+    candidates = [row for row in rows if row["category"] in PUBLIC_RECORDS_CATEGORIES]
+    if not candidates:
+        return "## Public-records question candidates\n\nNo public-records question candidates were generated for this report.\n"
+
+    sections = ["## Public-records question candidates\n"]
+    for item in candidates:
+        sections.append(f"**{item['title']}**\n\n{item['open_questions']}\n")
+    return "\n".join(sections)
+
+
 def render_findings_section(findings_path: Path) -> str:
     rows = list(csv.DictReader(findings_path.open(encoding="utf-8")))
     if not rows:
@@ -192,6 +268,7 @@ def render_report(
     *,
     data_quality_path: Path | None = None,
     top_changes_path: Path | None = None,
+    clusters_path: Path | None = None,
 ) -> None:
     report_date = report_date or date.today()
     sections = [
@@ -202,8 +279,10 @@ def render_report(
         render_scope_section(),
         render_reconciliation_section(reconcile_summaries),
         render_data_quality_section(data_quality_path),
+        render_top_clusters_section(clusters_path),
         render_top_changes_section(top_changes_path),
         render_findings_section(findings_path),
+        render_public_records_section(findings_path),
         "## How to read this report\n\n"
         "This report uses neutral language deliberately: `unclear`, `needs explanation`, and "
         "`does not reconcile in this extraction` describe open questions, not conclusions. "
