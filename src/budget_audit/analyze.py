@@ -139,6 +139,7 @@ def analyze_deltas(
                     "percent_delta": "" if percent is None else str(percent.quantize(Decimal("0.01"))),
                     "status": status,
                     "material": "true" if material else "false",
+                    "correction_action": row.get("correction_action", ""),
                 }
             )
 

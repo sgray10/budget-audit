@@ -151,7 +151,7 @@ budget-audit generate-report \
 
 ## Current status
 
-The Weakley County 2026-06-30 packet workflow has extracted and reconciled the budget pages for all ten funds in pages 23-158, and the analysis/report layer now implements the fuller `docs/report-design.md` taxonomy: an 8-category finding classification, dynamic label-prefix clustering with revenue/expense pairing detection, data-quality warnings separated from substantive findings, top absolute/percent change rankings, and category-specific public-records question templates. See `docs/report-design.md`'s "Status" section for exactly what's implemented vs. still deferred, and `ROADMAP.md` for the phase-by-phase picture. As of 2026-07-04, every tracked GitHub issue for this packet is closed; the next open work is Phase 7 (generalization beyond this one packet), not yet scoped into an issue.
+The Weakley County 2026-06-30 packet workflow has extracted and reconciled the budget pages for all ten funds in pages 23-158. The report is now a layered civic-intelligence review packet rather than a flat findings dump: a short executive summary and a synthesized "Priority follow-up areas" section come first, backed by an account-number-first line-item classifier, plain-English cluster narratives, impact-scored data-quality gating, and a manual-corrections summary, with the full raw detail available in appendices (`--verbosity full`). See `docs/report-design.md`'s "Status" section for exactly what's implemented vs. still deferred, and `ROADMAP.md` for the phase-by-phase picture.
 
 ## Current Weakley County OCR workflow
 
