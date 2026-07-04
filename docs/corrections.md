@@ -8,6 +8,15 @@ Manual correction files (`review/<document-id>/manual_row_corrections_*.csv`) le
 
 **Use `add` when a row was never extracted at all** — a skipped continuation page, a dotted account code the parser doesn't handle, a split-layout page. An `add` correction is an insertion, not a correction of an existing row; it doesn't need to match anything.
 
+An `add` correction row may optionally include `row_type` and `category` columns to specify what kind of row is being inserted. Both default to `line_item`/`operating` for backward compatibility with correction files written before this option existed. **Set `row_type` explicitly whenever the row being added is a `transfer` or a `total`** — leaving it at the `line_item` default for those cases will make `reconcile_fund()` bucket a transfer as ordinary revenue/expenditure (silently wrong if the amount is nonzero), and will make `reconcile-subtotals` fail to close the total's own group, merging its line items into whatever the next real total row happens to be instead.
+
+Example: adding a missing `Transfers In` row, page 106, fund 141:
+
+```csv
+document_id,page_number,line_number,action,fund_number,section_hint,row_type,category,account,label,actual_24_25,budget_25_26,actual_25_26,budget_26_27,reason,raw_line
+weakley-fwm-2026-06-30,106,20,add,141,Fund 141 General Purpose School revenues,transfer,transfer,49800,Transfers In,,,,27000,row failed extraction,49800 Transfers In 27,000
+```
+
 **Use a last-resort balancing correction only when a reconciliation gap has been tracked down to a specific, understood cause that can't be cleanly expressed as a normal `add` or `replace` against a real source row.** This is an `add` with a small (often $1) delta amount and no real-world referent — a stopgap, not a fix, and a code smell to be minimized. Document the reason clearly enough that a future pass can replace it with a proper fix once the real gap is understood.
 
 ## Worked example: the Fund 141 page-106 case

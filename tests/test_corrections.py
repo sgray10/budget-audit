@@ -1,11 +1,29 @@
+import csv
 from pathlib import Path
 
 import pytest
 
 from budget_audit.corrections import apply_row_corrections
+from budget_audit.reconcile import reconcile_fund
+from budget_audit.subtotal_reconcile import reconcile_subtotals
 
 ROWS_HEADER = "document_id,page_number,account,label,budget_26_27,raw_line\n"
 CORRECTIONS_HEADER = "document_id,page_number,action,account,label,budget_26_27,reason,raw_line\n"
+
+# Full 26-column schema needed for the reconcile_fund/reconcile_subtotals
+# integration tests below -- apply_row_corrections' add path sets several
+# fields (category, review_confidence, contains_budget_table, etc.)
+# unconditionally, so the extracted-rows fixture must have all of them.
+FULL_ROWS_HEADER = (
+    "document_id,page_number,line_number,context_hint,category,row_type,review_confidence,"
+    "contains_salary_or_compensation,contains_budget_table,division,department,fund_name,"
+    "fund_number,page_type,section_hint,account,label,actual_24_25,budget_25_26,"
+    "actual_25_26,budget_26_27,parse_status,raw_line\n"
+)
+FULL_CORRECTIONS_HEADER = (
+    "document_id,page_number,line_number,action,fund_number,section_hint,row_type,category,"
+    "account,label,actual_24_25,budget_25_26,actual_25_26,budget_26_27,reason,raw_line\n"
+)
 
 
 def test_apply_row_corrections_replaces_and_adds(tmp_path: Path) -> None:
@@ -180,3 +198,99 @@ def test_whitespace_tolerant_matching(tmp_path: Path) -> None:
 
     assert stats["replaced"] == 1
     assert stats["unmatched_replacements"] == []
+
+
+def test_add_correction_defaults_row_type_and_category_when_unspecified(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    corrections_path = tmp_path / "corrections.csv"
+    out_path = tmp_path / "corrected.csv"
+
+    rows_path.write_text(
+        FULL_ROWS_HEADER
+        + "doc,1,100,,operating,line_item,high,false,true,,,General,101,budget_table,"
+        "Fund 101 General Fund expenditures,510,Supplies,,,,50,parsed,raw\n",
+        encoding="utf-8",
+    )
+    # row_type/category left blank -- existing correction files (predating
+    # issue #14) look like this and must keep working unchanged.
+    corrections_path.write_text(
+        FULL_CORRECTIONS_HEADER
+        + "doc,1,101,add,101,Fund 101 General Fund expenditures,,,200,New Line,,,,5000,missing,raw add\n",
+        encoding="utf-8",
+    )
+
+    apply_row_corrections(rows_path, corrections_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    added = next(row for row in rows if row["label"] == "New Line")
+    assert added["row_type"] == "line_item"
+    assert added["category"] == "operating"
+
+
+def test_add_correction_with_explicit_transfer_row_type_reconciles_correctly(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    corrections_path = tmp_path / "corrections.csv"
+    corrected_path = tmp_path / "corrected.csv"
+    reconcile_path = tmp_path / "reconcile.csv"
+
+    rows_path.write_text(
+        FULL_ROWS_HEADER
+        + "doc,1,10,,operating,line_item,high,false,true,,,General,101,budget_table,"
+        "Fund 101 General Fund expenditures,510,Supplies,,,,1000,parsed,raw\n",
+        encoding="utf-8",
+    )
+    # A "49800 Transfers In" row that failed extraction (mirrors the real
+    # Fund 172 case), this time with a nonzero amount so mis-bucketing it as
+    # a line_item instead of a transfer would actually change the numbers.
+    corrections_path.write_text(
+        FULL_CORRECTIONS_HEADER
+        + "doc,1,11,add,101,Fund 101 General Fund revenues,transfer,transfer,49800,Transfers In,,,,5000,missing,raw add\n",
+        encoding="utf-8",
+    )
+
+    apply_row_corrections(rows_path, corrections_path, corrected_path)
+
+    added_rows = list(csv.DictReader(corrected_path.open(encoding="utf-8")))
+    added = next(row for row in added_rows if row["label"] == "Transfers In")
+    assert added["row_type"] == "transfer"
+    assert added["category"] == "transfer"
+
+    stats = reconcile_fund(corrected_path, reconcile_path, "101")
+    assert stats["transfer_in"] == 5000
+    assert stats["revenue_line_items"] == 0
+
+
+def test_add_correction_with_explicit_total_row_type_closes_its_own_group(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    corrections_path = tmp_path / "corrections.csv"
+    corrected_path = tmp_path / "corrected.csv"
+    mismatches_path = tmp_path / "mismatches.csv"
+
+    rows_path.write_text(
+        FULL_ROWS_HEADER
+        + "doc,1,10,,operating,line_item,high,false,true,,,General,101,budget_table,"
+        "Fund 101 General Fund expenditures,510,Supplies,,,,1000,parsed,raw\n"
+        + "doc,1,12,,operating,line_item,high,false,true,,,General,101,budget_table,"
+        "Fund 101 General Fund expenditures,520,Other Supplies,,,,500,parsed,raw\n",
+        encoding="utf-8",
+    )
+    # An added Sub-Total that failed extraction, positioned (via line_number)
+    # after both line items so it closes their group rather than splitting
+    # it. If forced to row_type=line_item (the pre-fix behavior), it would
+    # merge into whatever the next real total row's group is instead.
+    corrections_path.write_text(
+        FULL_CORRECTIONS_HEADER
+        + "doc,1,13,add,101,Fund 101 General Fund expenditures,total,operating,,Sub-Total,,,,1500,missing,raw add\n",
+        encoding="utf-8",
+    )
+
+    apply_row_corrections(rows_path, corrections_path, corrected_path)
+
+    added_rows = list(csv.DictReader(corrected_path.open(encoding="utf-8")))
+    added = next(row for row in added_rows if row["label"] == "Sub-Total")
+    assert added["row_type"] == "total"
+
+    stats = reconcile_subtotals(corrected_path, mismatches_path)
+    assert stats["compared"] == 1
+    assert stats["matched"] == 1
+    assert stats["mismatched"] == 0
