@@ -11,6 +11,11 @@ FUND_NAMES = {
     "122": "Drug Enforcement",
     "131": "Highway",
     "141": "General Purpose School",
+    "143": "School Nutrition",
+    "151": "Debt Service",
+    "171": "General Capital Projects",
+    "172": "Community Development",
+    "202": "Nursing Home",
 }
 
 HEADLINE_TRANSITION_LABEL = "headline_actual_25_26_to_budget_26_27"
