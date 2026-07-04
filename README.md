@@ -120,7 +120,7 @@ budget-audit generate-report \
 
 ## Data handling principles
 
-- Store original records unchanged under `data/raw/`.
+- Store original records unchanged under `data/raw/`. These are public government records and are committed to this repo so anyone can independently re-run extraction against the exact original -- see `docs/methodology.md` "Preserve" for the full storage policy.
 - Do not commit sensitive or non-public records.
 - Record document title, source URL or request origin, acquisition date, page number, and extraction method.
 - Every derived number should be traceable back to a source page.

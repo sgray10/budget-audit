@@ -8,11 +8,17 @@ __pycache__/
 .venv/
 venv/
 
-# Local source records and generated working data.
-# Raw records may include large files or records not intended for git.
+# Generated working/derived data. Regenerable from data/raw/ plus the
+# tracked review/ CSVs, so not committed.
 # reports/ is intentionally NOT ignored -- generated citizen-readable reports
 # are the project's public-facing output and are meant to be committed.
-data/raw/
+#
+# data/raw/ is intentionally NOT ignored either: source documents are public
+# government records, and committing them makes extraction independently
+# verifiable against the original. See docs/methodology.md "Preserve" and
+# the raw-record storage policy note there. If a record is ever acquired
+# that is not itself public (should not normally happen for this project),
+# do not commit it -- add a specific exclusion instead of reverting this.
 data/interim/
 data/processed/
 
