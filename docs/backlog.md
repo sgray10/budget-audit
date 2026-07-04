@@ -88,13 +88,15 @@ Fund 141 General Purpose School is reconciled. Fund 143 begins on page 139.
 
 Acceptance criteria:
 
-- [ ] Identify the complete Fund 143 page range.
-- [ ] Render/OCR the needed Fund 143 pages.
-- [ ] Create page-review metadata for Fund 143.
-- [ ] Extract/enrich/classify Fund 143 rows.
-- [ ] Reconcile revenues and expenditures to summary lines.
-- [ ] Add corrections only where source review justifies them.
-- [ ] Add a checkpoint doc when reconciled.
+- [x] Identify the complete Fund 143 page range. (139-142; Fund 151 begins page 143)
+- [x] Render/OCR the needed Fund 143 pages. (already covered by the full-packet OCR pass)
+- [x] Create page-review metadata for Fund 143.
+- [x] Extract/enrich/classify Fund 143 rows.
+- [x] Reconcile revenues and expenditures to summary lines.
+- [x] Add corrections only where source review justifies them. (1 dotted-account-code drop, 4 FTE-fused-amount rows, both hand-verified against source totals before correcting)
+- [x] Add a checkpoint doc when reconciled.
+
+Implemented: `review/weakley-fwm-2026-06-30/page_review_139_142.csv`, `manual_row_corrections_139_142.csv`. Fund 143 reconciles exactly (revenue=expenditure=3,621,955, net=0) and all 9 subtotal groups match with zero mismatches -- see `docs/checkpoints/weakley-fwm-2026-06-30-fund-143-pages-139-142.md`. Next: Fund 151 Debt Service, pages 143-149.
 
 ### Improve correction replacement matching — issue #4
 
