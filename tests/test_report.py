@@ -7,6 +7,7 @@ from budget_audit.report import (
     format_money,
     load_reconcile_summary,
     markdown_table,
+    render_data_quality_section,
     render_findings_section,
     render_report,
     render_scope_section,
@@ -67,6 +68,23 @@ def test_render_findings_section_uses_neutral_language(tmp_path: Path) -> None:
     assert not BANNED_WORDS.search(section)
 
 
+def test_render_data_quality_section_lists_warnings(tmp_path: Path) -> None:
+    data_quality_path = tmp_path / "data_quality.csv"
+    data_quality_path.write_text(
+        "warning_id,warning_type,severity,confidence,summary,evidence,status\n"
+        'dq-1,unparsed_amount,high,high,"The amount needs verification.",'
+        '"document=doc; page=23",needs_manual_verification\n',
+        encoding="utf-8",
+    )
+
+    section = render_data_quality_section(data_quality_path)
+
+    assert "## Data-quality warnings" in section
+    assert "unparsed_amount" in section
+    assert "needs verification" in section
+    assert not BANNED_WORDS.search(section)
+
+
 def test_render_report_writes_expected_sections(tmp_path: Path) -> None:
     findings_path = tmp_path / "findings.csv"
     findings_path.write_text(
@@ -88,6 +106,7 @@ def test_render_report_writes_expected_sections(tmp_path: Path) -> None:
     content = out_path.read_text(encoding="utf-8")
     assert "## Scope" in content
     assert "## Reconciliation summary" in content
+    assert "## Data-quality warnings" in content
     assert "## Findings" in content
     assert "## How to read this report" in content
     assert not BANNED_WORDS.search(content)

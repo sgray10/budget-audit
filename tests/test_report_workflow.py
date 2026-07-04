@@ -20,6 +20,7 @@ def test_report_workflow_paths(tmp_path: Path) -> None:
     assert paths.delta_summary_by_fund == out_dir / "delta_summary_by_fund.csv"
     assert paths.compensation_rollup == out_dir / "compensation_rollup.csv"
     assert paths.compensation_flags == out_dir / "compensation_flags.csv"
+    assert paths.data_quality_warnings == out_dir / "data_quality_warnings.csv"
     assert paths.findings == out_dir / "findings.csv"
     assert paths.report_md == reports_dir / "weakley-fwm-2026-06-30.md"
 
@@ -69,10 +70,12 @@ def test_run_report_workflow_end_to_end(tmp_path: Path) -> None:
     # it still surfaces separately as a compensation needs_review finding.
     assert stats["material_rows"] == 1
     assert stats["compensation_needs_review"] == 1  # Registrar's Salary Supplement
+    assert stats["data_quality_warnings"] == 0
     assert stats["total_findings"] >= 3  # delta + compensation + reconciliation (fund 101 out of tolerance)
 
     report_path = reports_dir / "test-report.md"
     assert report_path.exists()
     content = report_path.read_text(encoding="utf-8")
     assert "Fund 101 does not reconcile" in content
+    assert "## Data-quality warnings" in content
     assert "| 141 | General Purpose School |" in content

@@ -599,6 +599,7 @@ def generate_report_cmd(
         f"{stats['material_rows']} material deltas; {stats['new_line_rows']} new; "
         f"{stats['eliminated_line_rows']} eliminated; "
         f"{stats['compensation_needs_review']} compensation rows need review; "
+        f"{stats['data_quality_warnings']} data-quality warnings; "
         f"{stats['total_findings']} total findings"
     )
     console.print(f"wrote report to {reports_dir / report_filename}")

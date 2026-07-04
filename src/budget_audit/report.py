@@ -89,6 +89,29 @@ def render_reconciliation_section(reconcile_summaries: list[dict[str, str]]) -> 
     )
 
 
+def render_data_quality_section(data_quality_path: Path | None) -> str:
+    if data_quality_path is None:
+        return "## Data-quality warnings\n\nNo data-quality warnings were generated for this report.\n"
+
+    rows = list(csv.DictReader(data_quality_path.open(encoding="utf-8")))
+    if not rows:
+        return "## Data-quality warnings\n\nNo data-quality warnings were generated for this report.\n"
+
+    table_rows = [
+        [
+            row["warning_type"],
+            row["severity"],
+            row["confidence"],
+            row["summary"],
+            row["evidence"],
+        ]
+        for row in rows
+    ]
+    return "## Data-quality warnings\n\n" + markdown_table(
+        ["Type", "Severity", "Confidence", "Summary", "Evidence"], table_rows
+    )
+
+
 def render_findings_section(findings_path: Path) -> str:
     rows = list(csv.DictReader(findings_path.open(encoding="utf-8")))
     if not rows:
@@ -119,6 +142,8 @@ def render_report(
     reconcile_summaries: list[dict[str, str]],
     out_path: Path,
     report_date: date | None = None,
+    *,
+    data_quality_path: Path | None = None,
 ) -> None:
     report_date = report_date or date.today()
     sections = [
@@ -128,6 +153,7 @@ def render_report(
         "extraction and review process._\n",
         render_scope_section(),
         render_reconciliation_section(reconcile_summaries),
+        render_data_quality_section(data_quality_path),
         render_findings_section(findings_path),
         "## How to read this report\n\n"
         "This report uses neutral language deliberately: `unclear`, `needs explanation`, and "
