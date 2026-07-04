@@ -16,15 +16,16 @@ Fund 171 begins on page 150. The next fund, Fund 172 Community Development, begi
       --pages 150-152 \
       --document-id weakley-fwm-2026-06-30 \
       --page-review review/weakley-fwm-2026-06-30/page_review_150_152.csv \
+      --corrections review/weakley-fwm-2026-06-30/manual_row_corrections_150_152.csv \
       --out-dir data/processed \
       --funds 171
 
-    budget-audit reconcile-subtotals data/processed/ocr_table_rows_150_152_classified.csv \
+    budget-audit reconcile-subtotals data/processed/ocr_table_rows_150_152_corrected.csv \
       --out data/processed/subtotal_mismatches_150_152.csv
 
-No `--corrections` file was needed for this fund (see Notes) -- `run-reviewed-range` treats the corrections argument as optional.
-
 (Pages 150-152 were already rendered and OCR'd as part of the full-packet OCR pass.)
+
+**Update (2026-07-04):** `manual_row_corrections_150_152.csv` is an empty (header-only) corrections file, added so this fund produces a real `ocr_table_rows_150_152_corrected.csv` with the same column schema as every other fund's corrected file. Originally this fund's `run-reviewed-range` was invoked without `--corrections` at all (genuinely no corrections were needed), which left only a `_classified.csv` file -- missing the `correction_action`/`correction_reason`/`correction_raw_line` columns every other fund's file has. That schema mismatch broke `consolidate-reviewed-rows`' (deliberately strict) header check when building a report across all 10 funds. Reconciliation numbers are unaffected (confirmed identical before and after).
 
 ## Row counts
 

@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from budget_audit.analyze import MaterialityThreshold, analyze_deltas
+from budget_audit.clusters import build_clusters
 from budget_audit.compensation import analyze_compensation
 from budget_audit.consolidate import consolidate_reviewed_rows
 from budget_audit.corrections import apply_row_corrections
@@ -502,6 +503,19 @@ def analyze_compensation_cmd(rows_path: Path, out_dir: Path) -> None:
     console.print(f"wrote compensation CSVs to {out_dir}")
 
 
+@main.command("build-clusters")
+@click.argument("rows_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
+def build_clusters_cmd(rows_path: Path, out_path: Path) -> None:
+    """Group line items by fund and label prefix, flagging paired revenue/expense clusters."""
+    stats = build_clusters(rows_path, out_path)
+    console.print(
+        f"wrote {out_path}: {stats['clusters']} clusters "
+        f"({stats['paired_clusters']} paired); "
+        f"{stats['unclustered_line_items']} line items had no detectable prefix"
+    )
+
+
 @main.command("build-findings")
 @click.argument("deltas_path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option(
@@ -517,13 +531,24 @@ def analyze_compensation_cmd(rows_path: Path, out_dir: Path) -> None:
     required=True,
     help="fund=path pairs, e.g. --reconcile 101=data/processed/reconcile_fund_101_023_085.csv (repeatable).",
 )
+@click.option(
+    "--clusters",
+    "clusters_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Optional clusters.csv (from build-clusters) to sharpen the allocation_change category heuristic.",
+)
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
 def build_findings_cmd(
-    deltas_path: Path, compensation_flags_path: Path, reconcile_specs: tuple[str, ...], out_path: Path
+    deltas_path: Path,
+    compensation_flags_path: Path,
+    reconcile_specs: tuple[str, ...],
+    clusters_path: Path | None,
+    out_path: Path,
 ) -> None:
     """Assemble delta, compensation, and reconciliation findings into one findings CSV."""
     reconcile_paths = _parse_reconcile_specs(reconcile_specs)
-    stats = build_findings(deltas_path, compensation_flags_path, reconcile_paths, out_path)
+    stats = build_findings(deltas_path, compensation_flags_path, reconcile_paths, out_path, clusters_path=clusters_path)
     console.print(
         f"wrote {out_path}: {stats['delta_findings']} delta, "
         f"{stats['compensation_findings']} compensation, "
@@ -541,12 +566,47 @@ def build_findings_cmd(
     required=True,
     help="fund=path pairs for the reconciliation summary table, repeatable.",
 )
+@click.option(
+    "--data-quality",
+    "data_quality_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Optional data_quality_warnings.csv (from analyze-data-quality) to include as its own report section.",
+)
+@click.option(
+    "--top-changes",
+    "top_changes_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Optional top_changes.csv (from analyze-top-changes) to include as its own report section.",
+)
+@click.option(
+    "--clusters",
+    "clusters_path",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Optional clusters.csv (from build-clusters) to include as its own report section.",
+)
 @click.option("--out", "out_path", type=click.Path(path_type=Path), required=True)
-def report_cmd(findings_path: Path, reconcile_specs: tuple[str, ...], out_path: Path) -> None:
+def report_cmd(
+    findings_path: Path,
+    reconcile_specs: tuple[str, ...],
+    data_quality_path: Path | None,
+    top_changes_path: Path | None,
+    clusters_path: Path | None,
+    out_path: Path,
+) -> None:
     """Render a citizen-readable markdown report from findings and reconciliation summaries."""
     reconcile_paths = _parse_reconcile_specs(reconcile_specs)
     summaries = [load_reconcile_summary(fund, path) for fund, path in sorted(reconcile_paths.items())]
-    render_report(findings_path, summaries, out_path)
+    render_report(
+        findings_path,
+        summaries,
+        out_path,
+        data_quality_path=data_quality_path,
+        top_changes_path=top_changes_path,
+        clusters_path=clusters_path,
+    )
     console.print(f"wrote {out_path}")
 
 
@@ -601,6 +661,7 @@ def generate_report_cmd(
         f"{stats['compensation_needs_review']} compensation rows need review; "
         f"{stats['data_quality_warnings']} data-quality warnings; "
         f"{stats['top_change_rows']} top-change rows; "
+        f"{stats['clusters']} clusters ({stats['paired_clusters']} paired); "
         f"{stats['total_findings']} total findings"
     )
     console.print(f"wrote report to {reports_dir / report_filename}")

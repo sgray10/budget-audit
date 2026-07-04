@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from budget_audit.analyze import MaterialityThreshold, analyze_deltas
+from budget_audit.clusters import build_clusters
 from budget_audit.compensation import analyze_compensation
 from budget_audit.consolidate import consolidate_reviewed_rows
 from budget_audit.data_quality import analyze_data_quality
@@ -21,6 +22,7 @@ class ReportWorkflowPaths:
     compensation_flags: Path
     data_quality_warnings: Path
     top_changes: Path
+    clusters: Path
     findings: Path
     report_md: Path
 
@@ -34,6 +36,7 @@ def report_workflow_paths(out_dir: Path, reports_dir: Path, report_filename: str
         compensation_flags=out_dir / "compensation_flags.csv",
         data_quality_warnings=out_dir / "data_quality_warnings.csv",
         top_changes=out_dir / "top_changes.csv",
+        clusters=out_dir / "clusters.csv",
         findings=out_dir / "findings.csv",
         report_md=reports_dir / report_filename,
     )
@@ -58,8 +61,13 @@ def run_report_workflow(
     comp_stats = analyze_compensation(paths.consolidated_rows, out_dir)
     data_quality_stats = analyze_data_quality(paths.consolidated_rows, paths.data_quality_warnings)
     top_change_stats = analyze_top_changes(paths.line_item_deltas, paths.top_changes)
+    cluster_stats = build_clusters(paths.consolidated_rows, paths.clusters)
     finding_stats = build_findings(
-        paths.line_item_deltas, paths.compensation_flags, reconcile_paths, paths.findings
+        paths.line_item_deltas,
+        paths.compensation_flags,
+        reconcile_paths,
+        paths.findings,
+        clusters_path=paths.clusters,
     )
 
     summaries = [
@@ -71,6 +79,7 @@ def run_report_workflow(
         paths.report_md,
         data_quality_path=paths.data_quality_warnings,
         top_changes_path=paths.top_changes,
+        clusters_path=paths.clusters,
     )
 
     return {
@@ -81,5 +90,7 @@ def run_report_workflow(
         "compensation_needs_review": comp_stats["needs_review_rows"],
         "data_quality_warnings": data_quality_stats["data_quality_warnings"],
         "top_change_rows": top_change_stats["top_change_rows"],
+        "clusters": cluster_stats["clusters"],
+        "paired_clusters": cluster_stats["paired_clusters"],
         "total_findings": finding_stats["total_findings"],
     }

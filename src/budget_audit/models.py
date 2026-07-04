@@ -24,6 +24,27 @@ class ReviewStatus(StrEnum):
     SUPERSEDED = "superseded"
 
 
+class FindingStatus(StrEnum):
+    """Review-status lifecycle for a Finding, per docs/report-design.md.
+
+    A machine-generated report is a review queue, not an audit finding --
+    this lifecycle tracks a finding from automated generation through human
+    review. Transitions past MACHINE_GENERATED are made by a human reviewer,
+    not by this codebase; no code currently advances a finding along this
+    lifecycle automatically.
+    """
+
+    MACHINE_GENERATED = "machine_generated"
+    SOURCE_VERIFIED = "source_verified"
+    RECONCILED_TO_PACKET = "reconciled_to_packet"
+    QUESTION_DRAFTED = "question_drafted"
+    RECORDS_REQUESTED = "records_requested"
+    EXPLANATION_RECEIVED = "explanation_received"
+    RESOLVED = "resolved"
+    STILL_UNCLEAR = "still_unclear"
+    DISCARDED_EXTRACTION_ERROR = "discarded_extraction_error"
+
+
 class Document(BaseModel):
     document_id: str
     title: str
@@ -80,4 +101,5 @@ class Finding(BaseModel):
     summary: str
     evidence: list[str] = Field(default_factory=list)
     open_questions: list[str] = Field(default_factory=list)
-    status: str = "draft"
+    status: FindingStatus = FindingStatus.MACHINE_GENERATED
+    cluster_id: str | None = None

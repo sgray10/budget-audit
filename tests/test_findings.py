@@ -6,9 +6,10 @@ from budget_audit.findings import (
     findings_from_compensation,
     findings_from_deltas,
     findings_from_reconciliation,
+    load_paired_cluster_ids,
     write_findings,
 )
-from budget_audit.models import Finding
+from budget_audit.models import Finding, FindingStatus
 
 DELTA_HEADER = (
     "document_id,page_number,fund_number,fund_name,budget_side,division,department,account,label,"
@@ -44,7 +45,66 @@ def test_findings_from_deltas_material_new_eliminated(tmp_path: Path) -> None:
     assert new_finding.severity == "medium"
     assert eliminated_finding.severity == "medium"
     assert material_finding.severity == "low"
-    assert all(f.category == "delta" for f in findings)
+    # None of these labels match a grant/capital/contract/recipient pattern,
+    # so all fall through to the generic review category.
+    assert all(f.category == "needs_human_review" for f in findings)
+    assert all(f.status == FindingStatus.MACHINE_GENERATED for f in findings)
+
+
+def test_findings_from_deltas_categorizes_grant_and_capital_and_contract(tmp_path: Path) -> None:
+    deltas_path = tmp_path / "deltas.csv"
+    deltas_path.write_text(
+        DELTA_HEADER
+        + "doc,23,101,General,expenditure,,,46590,State Education Grant,headline_actual_25_26_to_budget_26_27,actual_25_26,budget_26_27,,50000,,,new,false\n"
+        + "doc,24,101,General,expenditure,,,47590,Federal Relief Grant,headline_actual_25_26_to_budget_26_27,actual_25_26,budget_26_27,50000,,,,eliminated,false\n"
+        + "doc,25,101,General,expenditure,,,707,Building Improvements,headline_actual_25_26_to_budget_26_27,actual_25_26,budget_26_27,0,100000,100000,1000,present,true\n"
+        + "doc,26,101,General,expenditure,,,399,Other Contracted Services,headline_actual_25_26_to_budget_26_27,actual_25_26,budget_26_27,1000,20000,19000,1900,present,true\n"
+        + "doc,27,101,General,expenditure,,,510,City of Dresden,headline_actual_25_26_to_budget_26_27,actual_25_26,budget_26_27,1000,20000,19000,1900,present,true\n",
+        encoding="utf-8",
+    )
+
+    findings = findings_from_deltas(deltas_path)
+    by_title = {f.title.split(":")[1].split("(")[0].strip(): f for f in findings}
+
+    assert by_title["State Education Grant"].category == "grant_roll_on"
+    assert by_title["Federal Relief Grant"].category == "grant_roll_off"
+    assert by_title["Building Improvements"].category == "capital_project"
+    assert by_title["Other Contracted Services"].category == "contracted_services"
+    assert by_title["City of Dresden"].category == "allocation_change"
+
+
+def test_findings_from_deltas_allocation_change_via_paired_cluster(tmp_path: Path) -> None:
+    deltas_path = tmp_path / "deltas.csv"
+    deltas_path.write_text(
+        DELTA_HEADER
+        + "doc,23,101,General,expenditure,,,510,OPID West Tennessee United Way,headline_actual_25_26_to_budget_26_27,actual_25_26,budget_26_27,1000,20000,19000,1900,present,true\n",
+        encoding="utf-8",
+    )
+    clusters_path = tmp_path / "clusters.csv"
+    clusters_path.write_text(
+        "cluster_id,fund_number,fund_name,prefix,revenue_total,expenditure_total,is_paired,line_item_count,sample_labels\n"
+        "101-OPID,101,General,OPID,90954,123500,true,14,OPID Opioid Settlement Funds\n",
+        encoding="utf-8",
+    )
+
+    findings = findings_from_deltas(deltas_path, clusters_path)
+
+    assert len(findings) == 1
+    assert findings[0].category == "allocation_change"
+    assert findings[0].cluster_id == "101-OPID"
+
+
+def test_load_paired_cluster_ids(tmp_path: Path) -> None:
+    clusters_path = tmp_path / "clusters.csv"
+    clusters_path.write_text(
+        "cluster_id,fund_number,fund_name,prefix,revenue_total,expenditure_total,is_paired,line_item_count,sample_labels\n"
+        "101-OPID,101,General,OPID,90954,123500,true,14,x\n"
+        "101-BONUS,101,General,BONUS,0,5000,false,3,y\n",
+        encoding="utf-8",
+    )
+
+    assert load_paired_cluster_ids(clusters_path) == {"101-OPID"}
+    assert load_paired_cluster_ids(None) == set()
 
 
 def test_findings_from_compensation_only_needs_review(tmp_path: Path) -> None:
@@ -59,7 +119,7 @@ def test_findings_from_compensation_only_needs_review(tmp_path: Path) -> None:
     findings = findings_from_compensation(flags_path)
 
     assert len(findings) == 1
-    assert findings[0].category == "salary"
+    assert findings[0].category == "personnel_change"
     assert "Registrar's Salary Supplement" in findings[0].title
 
 
@@ -84,13 +144,13 @@ def test_write_findings_round_trip(tmp_path: Path) -> None:
     finding = Finding(
         finding_id="delta-101-40110",
         title="Material change: Big Increase (Fund 101)",
-        category="delta",
+        category="needs_human_review",
         severity="low",
         confidence="low",
         summary="Some summary text.",
         evidence=["document=doc", "page=23"],
         open_questions=["What explains this?", "Is this recurring?"],
-        status="draft",
+        cluster_id="101-BIG",
     )
 
     count = write_findings([finding], out_path)
@@ -101,6 +161,8 @@ def test_write_findings_round_trip(tmp_path: Path) -> None:
     assert rows[0]["finding_id"] == "delta-101-40110"
     assert rows[0]["evidence"] == "document=doc; page=23"
     assert rows[0]["open_questions"] == "What explains this?; Is this recurring?"
+    assert rows[0]["status"] == "machine_generated"
+    assert rows[0]["cluster_id"] == "101-BIG"
 
 
 def test_build_findings_combines_all_sources(tmp_path: Path) -> None:
