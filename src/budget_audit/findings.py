@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import csv
-import re
 from pathlib import Path
 
+from budget_audit.classify import categorize_line_item
 from budget_audit.clusters import cluster_id_for, extract_label_prefix
 from budget_audit.models import Finding
+from budget_audit.questions import questions_for_category
+from budget_audit.structural_changes import GrantFundedCapitalPair, WholeFundChange
 
 FUND_NAMES = {
     "101": "General",
@@ -22,53 +24,9 @@ FUND_NAMES = {
 
 HEADLINE_TRANSITION_LABEL = "headline_actual_25_26_to_budget_26_27"
 
-# Coarse, low-confidence category heuristics -- see docs/report-design.md for
-# the target taxonomy. These are pattern-matching aids to prompt review, not
-# semantic classification; a line item can plausibly fit more than one
-# category, so checks below run in a fixed, documented priority order.
-GRANT_RE = re.compile(r"\bgrant\b", re.IGNORECASE)
-CAPITAL_PROJECT_RE = re.compile(
-    r"building|construction|improvement|equipment|capital outlay", re.IGNORECASE
+MANUAL_CORRECTION_DEPENDENCY_NOTE = (
+    "This finding depends on a traceable manual correction; verify correction metadata before relying on it."
 )
-CONTRACTED_SERVICES_RE = re.compile(r"\bcontract", re.IGNORECASE)
-RECIPIENT_RE = re.compile(
-    r"^(city of|town of|county of)\b|(?:\bllc\b|\binc\.?\b|\bcoalition\b|\bauthority\b|\bhousing\b|\bagency\b)",
-    re.IGNORECASE,
-)
-
-# Neutral public-records question templates by category, from
-# docs/report-design.md. Specific enough to be useful, neutral enough to be
-# defensible -- these are prompts for a records request, not conclusions.
-PUBLIC_RECORDS_QUESTIONS: dict[str, list[str]] = {
-    "grant_roll_on": [
-        "Please provide the grant award letter, approved budget amendment, spending plan, and reporting requirements for this program.",
-        "Is this funding one-time, recurring, restricted, pass-through, or reimbursement-based?",
-    ],
-    "grant_roll_off": [
-        "Please explain whether this program/grant has ended, was reclassified, or the funding is delayed.",
-        "Please provide the grant closeout documentation or the current award status.",
-    ],
-    "capital_project": [
-        "Please provide the project list, bid documents, contracts, and commission minutes associated with this line item.",
-        "Is this a one-time capital expenditure or part of a recurring capital program?",
-    ],
-    "contracted_services": [
-        "Please identify the contracted party, the contract term, and the procurement method used.",
-        "Please provide the contract and any amendments associated with this line item.",
-    ],
-    "allocation_change": [
-        "Please identify the department, program, recipient, or transfer associated with this change.",
-        "Please provide recipient lists, award criteria, applications, scoring documents, memoranda of understanding, and deliverables for these allocations.",
-    ],
-    "personnel_change": [
-        "Does this line item represent one position or several?",
-        "Is a position title/department sufficient to identify who is compensated, or is more context needed?",
-    ],
-    "reconciliation": [
-        "Does the source document itself balance, or does the county packet show the same gap?",
-        "Please confirm whether the source packet itself balances or whether this difference reflects a packet-level imbalance.",
-    ],
-}
 
 
 def _finding_id(prefix: str, *parts: str) -> str:
@@ -81,58 +39,18 @@ def _cluster_id(fund_number: str, label: str) -> str | None:
     return cluster_id_for(fund_number, prefix) if prefix else None
 
 
-def load_paired_cluster_ids(clusters_path: Path | None) -> set[str]:
-    """Load the set of cluster_ids flagged is_paired=true from clusters.csv,
-    for the allocation_change categorization heuristic below. Returns an
-    empty set if no clusters file is given -- callers should treat clustering
-    as an enhancement, not a hard dependency.
-    """
-    if clusters_path is None:
-        return set()
-    rows = list(csv.DictReader(clusters_path.open(encoding="utf-8")))
-    return {row["cluster_id"] for row in rows if row.get("is_paired") == "true"}
-
-
-def _categorize_delta(row: dict[str, str], paired_cluster_ids: set[str]) -> str:
-    """Coarse, documented heuristic mapping a delta row to a finding category.
-    Checks run in priority order; a row could plausibly match more than one
-    pattern, so this is a triage aid, not a determination -- consistent with
-    compensation.classify_compensation_label's posture.
-    """
-    label = row["label"]
-    section_hint = row.get("section_hint", "")
-    status = row["status"]
-
-    if status == "new" and GRANT_RE.search(label):
-        return "grant_roll_on"
-    if status == "eliminated" and GRANT_RE.search(label):
-        return "grant_roll_off"
-    if CAPITAL_PROJECT_RE.search(label) or CAPITAL_PROJECT_RE.search(section_hint):
-        return "capital_project"
-    if CONTRACTED_SERVICES_RE.search(label) or CONTRACTED_SERVICES_RE.search(section_hint):
-        return "contracted_services"
-
-    cluster_id = _cluster_id(row["fund_number"], label)
-    if RECIPIENT_RE.search(label) or (cluster_id is not None and cluster_id in paired_cluster_ids):
-        return "allocation_change"
-
-    return "needs_human_review"
-
-
-def findings_from_deltas(
-    delta_rows_path: Path,
-    clusters_path: Path | None = None,
-) -> list[Finding]:
+def findings_from_deltas(delta_rows_path: Path) -> list[Finding]:
     """Build one Finding per material, new, or eliminated line item on the
     headline actual_25_26 -> budget_26_27 transition. Non-headline transitions
     are analytical detail (see line_item_deltas.csv), not surfaced here, so a
     single line item does not produce up to four duplicate findings.
 
-    Category is assigned by _categorize_delta(); clusters_path is optional
-    and only sharpens the allocation_change heuristic when provided.
+    Category is assigned by classify.categorize_line_item() -- account
+    number first, label as fallback -- so a line like "Building & Contents
+    Insurance" (account 502) lands in insurance_or_claims, not
+    capital_project, regardless of the word "Building".
     """
     rows = list(csv.DictReader(delta_rows_path.open(encoding="utf-8")))
-    paired_cluster_ids = load_paired_cluster_ids(clusters_path)
     findings: list[Finding] = []
 
     for row in rows:
@@ -150,7 +68,7 @@ def findings_from_deltas(
         old_value = row["old_value"] or "(none)"
         new_value = row["new_value"] or "(none)"
         percent = row["percent_delta"]
-        category = _categorize_delta(row, paired_cluster_ids)
+        category = categorize_line_item(row.get("account", ""), label, row.get("budget_side", ""))
 
         if row["status"] == "new":
             title = f"New line item: {label} (Fund {fund_number})"
@@ -177,6 +95,9 @@ def findings_from_deltas(
                 f"materiality threshold and needs explanation."
             )
 
+        if row.get("correction_action", ""):
+            summary = f"{summary} {MANUAL_CORRECTION_DEPENDENCY_NOTE}"
+
         findings.append(
             Finding(
                 finding_id=_finding_id("delta", fund_number, row["account"], label),
@@ -191,13 +112,7 @@ def findings_from_deltas(
                     f"account={row['account']}",
                     f"fund={fund_number} {fund_name}",
                 ],
-                open_questions=PUBLIC_RECORDS_QUESTIONS.get(
-                    category,
-                    [
-                        "What explains this change or presence/absence of this line item?",
-                        "Is this recurring or one-time?",
-                    ],
-                ),
+                open_questions=questions_for_category(category),
                 cluster_id=_cluster_id(fund_number, label),
             )
         )
@@ -227,7 +142,7 @@ def findings_from_compensation(compensation_flags_path: Path) -> list[Finding]:
             Finding(
                 finding_id=_finding_id("comp", fund_number, row["account"], label),
                 title=f"Compensation line needs explanation: {label} (Fund {fund_number})",
-                category="personnel_change",
+                category="personnel",
                 severity="info",
                 confidence="low",
                 summary=(
@@ -245,7 +160,7 @@ def findings_from_compensation(compensation_flags_path: Path) -> list[Finding]:
                     f"account={row['account']}",
                     f"fund={fund_number} {fund_name}",
                 ],
-                open_questions=PUBLIC_RECORDS_QUESTIONS["personnel_change"],
+                open_questions=questions_for_category("personnel"),
                 cluster_id=_cluster_id(fund_number, label),
             )
         )
@@ -286,10 +201,74 @@ def findings_from_reconciliation(
                         f"source imbalance, and needs explanation."
                     ),
                     evidence=[f"reconciliation_file={path.name}", f"net_with_transfers={net}"],
-                    open_questions=PUBLIC_RECORDS_QUESTIONS["reconciliation"],
+                    open_questions=questions_for_category("reconciliation"),
                 )
             )
 
+    return findings
+
+
+def findings_from_structural_changes(changes: list[WholeFundChange]) -> list[Finding]:
+    """Build a Finding for each whole-fund structural change (revenue and
+    expenditure both collapsing to ~zero, or the reverse) -- a fund-level
+    pattern distinct from any single line item. See structural_changes.py.
+    """
+    findings: list[Finding] = []
+    for change in changes:
+        direction_text = (
+            "both drop from materially active levels to near zero"
+            if change.direction == "zeroed_out"
+            else "both appear from near zero to materially active levels"
+        )
+        findings.append(
+            Finding(
+                finding_id=_finding_id("structural", change.fund_number),
+                title=f"Fund {change.fund_number} {change.fund_name}: fund-wide revenue and expenditure change",
+                category="whole_fund_structural_change",
+                severity="medium",
+                confidence="medium",
+                summary=(
+                    f"Fund {change.fund_number} {change.fund_name}'s revenue and expenditure {direction_text} "
+                    f"in the proposed budget (revenue {change.revenue_old} -> {change.revenue_new}; "
+                    f"expenditure {change.expenditure_old} -> {change.expenditure_new}). This is a "
+                    f"fund-wide pattern, not an isolated line item, and needs explanation."
+                ),
+                evidence=[f"fund={change.fund_number} {change.fund_name}"]
+                + [f"sample_label={label}" for label in change.sample_labels],
+                open_questions=questions_for_category("whole_fund_structural_change"),
+            )
+        )
+    return findings
+
+
+def findings_from_grant_capital_pairs(pairs: list[GrantFundedCapitalPair]) -> list[Finding]:
+    """Build a Finding for each fund-level grant-revenue/capital-expense
+    pairing of comparable magnitude, even when the two labels share no
+    common prefix (see structural_changes.detect_grant_funded_capital_pairs).
+    """
+    findings: list[Finding] = []
+    for pair in pairs:
+        findings.append(
+            Finding(
+                finding_id=_finding_id("grant-capital", pair.fund_number),
+                title=f"Fund {pair.fund_number} {pair.fund_name}: paired grant revenue and capital expense",
+                category="grant_funded_capital_project",
+                severity="low",
+                confidence="low",
+                summary=(
+                    f"Fund {pair.fund_number} {pair.fund_name} shows '{pair.revenue_label}' revenue "
+                    f"increasing by {pair.revenue_delta} alongside '{pair.expenditure_label}' expense "
+                    f"increasing by {pair.expenditure_delta} -- comparable magnitude, suggesting a single "
+                    f"grant-funded capital project rather than two unrelated changes."
+                ),
+                evidence=[
+                    f"fund={pair.fund_number} {pair.fund_name}",
+                    f"revenue_label={pair.revenue_label}",
+                    f"expenditure_label={pair.expenditure_label}",
+                ],
+                open_questions=questions_for_category("grant_funded_capital_project"),
+            )
+        )
     return findings
 
 
@@ -333,19 +312,29 @@ def build_findings(
     compensation_flags_path: Path,
     reconcile_paths: dict[str, Path],
     out_path: Path,
-    clusters_path: Path | None = None,
+    whole_fund_changes: list[WholeFundChange] | None = None,
+    grant_capital_pairs: list[GrantFundedCapitalPair] | None = None,
 ) -> dict[str, int]:
-    """Assemble delta, compensation, and reconciliation findings into one findings CSV."""
-    delta_findings = findings_from_deltas(delta_rows_path, clusters_path)
+    """Assemble delta, compensation, reconciliation, structural-change, and
+    grant/capital-pair findings into one findings CSV.
+    """
+    delta_findings = findings_from_deltas(delta_rows_path)
     comp_findings = findings_from_compensation(compensation_flags_path)
     reconcile_findings = findings_from_reconciliation(reconcile_paths)
+    structural_findings = findings_from_structural_changes(whole_fund_changes or [])
+    grant_capital_findings = findings_from_grant_capital_pairs(grant_capital_pairs or [])
 
-    all_findings = delta_findings + comp_findings + reconcile_findings
+    all_findings = (
+        delta_findings + comp_findings + reconcile_findings + structural_findings + grant_capital_findings
+    )
     write_findings(all_findings, out_path)
 
     return {
         "delta_findings": len(delta_findings),
         "compensation_findings": len(comp_findings),
         "reconciliation_findings": len(reconcile_findings),
+        "structural_change_findings": len(structural_findings),
+        "grant_capital_pair_findings": len(grant_capital_findings),
         "total_findings": len(all_findings),
     }
+

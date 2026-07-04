@@ -39,7 +39,7 @@ This milestone is now fully complete.
 
 Source of truth is GitHub issues; this table is a quick index. Update it when issues open/close.
 
-**As of 2026-07-04, every tracked issue is closed** -- there is no open backlog item. See `ROADMAP.md`'s Phase 7 for the next likely direction (generalization beyond this one packet), or open a new issue for the next concrete piece of work.
+**As of 2026-07-04 (later same day), issue #32 (report v2) is in progress; everything else is closed.**
 
 | Issue | Priority | Purpose | Status |
 |---:|---|---|---|
@@ -53,6 +53,7 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #10 | Low | Diff investment policy amendment (Resolution 2026-52). | Closed -- implemented in #29 |
 | #11 | Low | Decide raw public PDF storage policy. | Closed -- implemented in #28 |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Closed -- implemented across #17/#18/#23/#24 (Codex) and #25 |
+| #32 | Medium | Restructure report into a civic-intelligence review packet (executive summary, priority areas, fine-grained classification, data-quality gating, appendices). | Implemented, PR pending -- closes on merge |
 | #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Closed -- implemented in #26 |
 | #20 | Medium | Add top absolute-dollar and percentage change report sections (sub-issue of #12). | Closed -- implemented in #17/#18/#23/#24 (Codex) |
 | #21 | Medium | Cluster related findings before rendering public-facing report output (sub-issue of #12). | Closed -- implemented in #25 |
@@ -150,6 +151,27 @@ Acceptance criteria:
 - [x] Flag ambiguous compensation labels for review.
 
 Implemented in `src/budget_audit/compensation.py` (`analyze-compensation` CLI command). Heuristic is coarse and explicitly low-confidence; see `docs/weakley-fwm-2026-06-30-workflow.md` "Analysis and report generation".
+
+### Restructure report into a civic-intelligence review packet -- issue #32
+
+The report had grown into a long, repetitive machine-generated findings dump. Goal: a short, readable executive section up front, prioritized follow-up areas synthesized from clusters/top-changes/structural-changes/data-quality signals (not from every individual finding), and appendices for the full raw detail.
+
+Acceptance criteria:
+
+- [x] Fix account-blind classification (e.g. "Building & Contents Insurance" landing under capital_project because of the word "Building"). New account-number-first classifier in `classify.py`.
+- [x] Reduce repetitive/generic public-records questions; category-specific templates, deduplicated per section (`questions.py`).
+- [x] Gate data-quality warnings by impact score so low-impact $1-placeholder noise doesn't flood the main body (`data_quality.py`'s `data_quality_impact_score`).
+- [x] Move manual corrections to a summary + appendix instead of the main body (`manual_corrections.py`).
+- [x] Add plain-English cluster narratives, typed by pattern (debt service, grant-funded capital project, grant-funded program, allocation program) derived from the existing dynamic fund+prefix clustering, not hardcoded per-pattern detectors.
+- [x] Add whole-fund structural change detection (`structural_changes.py`) -- validated against Fund 202 Nursing Home's revenue+expenditure zero-out, and additionally caught Fund 171's line-item-only zero-out.
+- [x] Add fund-level grant/capital-expense pairing detection for pairs with no shared label prefix (`structural_changes.py`) -- validated against Fund 172 (Connected Communities Facilities grant / Building Construction) and Fund 131 (Highway State Aid Program / State Aid Projects).
+- [x] Add a synthesized "Priority follow-up areas" section (`priority_areas.py`), capped and ranked with reserved slots so debt/allocation clusters aren't crowded out by a few large dollar movements.
+- [x] Reorder the report into title/scope/reconciliation/executive-summary/priority-areas/clusters/top-changes/high-impact-data-quality/questions/findings/appendices.
+- [x] Add report verbosity modes (`summary`/`standard`/`full`, default `standard`).
+- [x] Add machine-readable JSON siblings for the structured CSV outputs.
+- [x] Never call a fund "reconciled" when net is nonzero; new `reconciliation_status()` naming (`balanced_in_extraction`/`extracted_with_gap`/`needs_reconciliation_review`).
+
+Implemented across `classify.py`, `questions.py`, `clusters.py`, `structural_changes.py`, `data_quality.py`, `manual_corrections.py`, `priority_areas.py`, `findings.py`, `report.py`, `report_workflow.py`, `json_export.py`. Full design/status notes in `docs/report-design.md` "Status".
 
 ### Diff investment policy amendment (Resolution 2026-52) -- issue #10
 

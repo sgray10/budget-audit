@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from budget_audit.analyze import MaterialityThreshold
@@ -22,11 +23,14 @@ def test_report_workflow_paths(tmp_path: Path) -> None:
     assert paths.compensation_flags == out_dir / "compensation_flags.csv"
     assert paths.data_quality_warnings == out_dir / "data_quality_warnings.csv"
     assert paths.top_changes == out_dir / "top_changes.csv"
+    assert paths.clusters == out_dir / "clusters.csv"
     assert paths.findings == out_dir / "findings.csv"
+    assert paths.manual_corrections == out_dir / "manual_corrections.csv"
+    assert paths.priority_areas == out_dir / "priority_areas.csv"
     assert paths.report_md == reports_dir / "weakley-fwm-2026-06-30.md"
 
 
-def test_run_report_workflow_end_to_end(tmp_path: Path) -> None:
+def _write_fixture_rows(tmp_path: Path) -> tuple[Path, Path]:
     first_range = tmp_path / "range_101.csv"
     first_range.write_text(
         ROW_HEADER
@@ -40,6 +44,11 @@ def test_run_report_workflow_end_to_end(tmp_path: Path) -> None:
         + "doc,90,line_item,operating,false,141,General Purpose School,Fund 141 General Purpose School expenditures,,,60110,Textbooks,,,\"1,000\",\"1,010\"\n",
         encoding="utf-8",
     )
+    return first_range, second_range
+
+
+def test_run_report_workflow_end_to_end(tmp_path: Path) -> None:
+    first_range, second_range = _write_fixture_rows(tmp_path)
 
     reconcile_101 = tmp_path / "reconcile_101.csv"
     reconcile_101.write_text(
@@ -72,13 +81,58 @@ def test_run_report_workflow_end_to_end(tmp_path: Path) -> None:
     assert stats["material_rows"] == 1
     assert stats["compensation_needs_review"] == 1  # Registrar's Salary Supplement
     assert stats["data_quality_warnings"] == 0
+    assert stats["high_impact_data_quality_warnings"] == 0
     assert stats["top_change_rows"] > 0
+    assert stats["manual_corrections"] == 0
     assert stats["total_findings"] >= 3  # delta + compensation + reconciliation (fund 101 out of tolerance)
 
     report_path = reports_dir / "test-report.md"
     assert report_path.exists()
     content = report_path.read_text(encoding="utf-8")
     assert "Fund 101 does not reconcile" in content
-    assert "## Data-quality warnings" in content
-    assert "## Top changes" in content
+    assert "## Executive summary" in content
+    assert "## Priority follow-up areas" in content
+    assert "## Top absolute-dollar changes" in content
     assert "| 141 | General Purpose School |" in content
+
+    # Machine-readable siblings.
+    findings_json = json.loads((out_dir / "findings.json").read_text(encoding="utf-8"))
+    assert len(findings_json) == stats["total_findings"]
+    questions_json = json.loads((out_dir / "questions.json").read_text(encoding="utf-8"))
+    assert "capital_project" in questions_json
+    reconciliation_json = json.loads((out_dir / "reconciliation.json").read_text(encoding="utf-8"))
+    assert {row["fund_number"] for row in reconciliation_json} == {"101", "141"}
+
+
+def test_run_report_workflow_verbosity_summary_omits_detail_sections(tmp_path: Path) -> None:
+    first_range, second_range = _write_fixture_rows(tmp_path)
+
+    reconcile_101 = tmp_path / "reconcile_101.csv"
+    reconcile_101.write_text(
+        "metric,value\nrevenue_with_transfers,0\nexpenditure_with_transfers,25000\nnet_with_transfers,-25000\n",
+        encoding="utf-8",
+    )
+    reconcile_141 = tmp_path / "reconcile_141.csv"
+    reconcile_141.write_text(
+        "metric,value\nrevenue_with_transfers,1010\nexpenditure_with_transfers,1010\nnet_with_transfers,0\n",
+        encoding="utf-8",
+    )
+
+    out_dir = tmp_path / "processed"
+    reports_dir = tmp_path / "reports"
+
+    run_report_workflow(
+        [first_range, second_range],
+        {"101": reconcile_101, "141": reconcile_141},
+        out_dir,
+        reports_dir,
+        "test-report.md",
+        MaterialityThreshold(),
+        verbosity="summary",
+    )
+
+    content = (reports_dir / "test-report.md").read_text(encoding="utf-8")
+    assert "## Executive summary" in content
+    assert "## Priority follow-up areas" in content
+    assert "## Findings by category" not in content
+    assert "## Appendix A" not in content

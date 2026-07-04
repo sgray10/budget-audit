@@ -86,3 +86,87 @@ def test_build_clusters_ignores_non_line_item_rows_and_unclustered_labels(tmp_pa
 
     assert stats["clusters"] == 0
     assert stats["unclustered_line_items"] == 1
+
+
+def test_build_clusters_tags_debt_service_cluster_type(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    out_path = tmp_path / "clusters.csv"
+
+    # Real Fund 151 pattern: principal and interest lines sharing a debt
+    # prefix, no offsetting revenue.
+    rows_path.write_text(
+        ROW_HEADER
+        + "doc,145,line_item,151,Debt Service,Fund 151 Debt Service expenditures,602,JAIL Principal on Notes,470000\n"
+        + "doc,146,line_item,151,Debt Service,Fund 151 Debt Service expenditures,613,JAIL Interest on Other Loans Payable,89219\n",
+        encoding="utf-8",
+    )
+
+    build_clusters(rows_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert rows[0]["cluster_type"] == "debt_service"
+    assert "debt-service" in rows[0]["narrative"]
+
+
+def test_build_clusters_tags_allocation_program_cluster_type(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    out_path = tmp_path / "clusters.csv"
+
+    # Real Fund 101 OPID pattern: opioid settlement revenue (grant-like)
+    # paired with several named-recipient expenditure lines (account 316).
+    # Recipient allocation should win over the grant-revenue signal as the
+    # cluster's type, since "who is the money going to" matters more here.
+    rows_path.write_text(
+        ROW_HEADER
+        + "doc,25,line_item,101,General,Fund 101 General Fund revenues,46845,OPID Opioid Settlement Funds,50000\n"
+        + "doc,60,line_item,101,General,Fund 101 General Fund expenditures,316,OPID City of Dresden,10000\n"
+        + "doc,60,line_item,101,General,Fund 101 General Fund expenditures,316,OPID City of Martin,17000\n",
+        encoding="utf-8",
+    )
+
+    build_clusters(rows_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert rows[0]["cluster_type"] == "allocation_program"
+    assert "named external recipients" in rows[0]["narrative"]
+
+
+def test_build_clusters_tags_grant_funded_capital_project_cluster_type(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    out_path = tmp_path / "clusters.csv"
+
+    # Real Fund 101 CRD pattern: a state grant revenue line paired with a
+    # building-improvements expenditure line under the same prefix.
+    rows_path.write_text(
+        ROW_HEADER
+        + "doc,30,line_item,101,General,Fund 101 General Fund revenues,46980,CRD Other State Grants,500000\n"
+        + "doc,70,line_item,101,General,Fund 101 General Fund expenditures,707,CRD Building Improvements,550000\n",
+        encoding="utf-8",
+    )
+
+    build_clusters(rows_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert rows[0]["cluster_type"] == "grant_funded_capital_project"
+    assert "grant/construction project" in rows[0]["narrative"]
+
+
+def test_build_clusters_tags_grant_funded_program_when_no_capital_side(tmp_path: Path) -> None:
+    rows_path = tmp_path / "rows.csv"
+    out_path = tmp_path / "clusters.csv"
+
+    # Real Fund 141 ABE pattern: grant revenue paired with personnel/benefits
+    # expenditure, not capital -- a program, not a construction project.
+    rows_path.write_text(
+        ROW_HEADER
+        + "doc,87,line_item,141,General Purpose School,Fund 141 General Purpose School revenues,46590,ABE Adult Basic Education (ABE),100000\n"
+        + "doc,105,line_item,141,General Purpose School,Fund 141 General Purpose School expenditures - Instruction,207,ABE Medical Insurance,8000\n"
+        + "doc,116,line_item,141,General Purpose School,Fund 141 General Purpose School expenditures - Instruction,212,ABE Medicare Liability,1500\n",
+        encoding="utf-8",
+    )
+
+    build_clusters(rows_path, out_path)
+
+    rows = list(csv.DictReader(out_path.open(encoding="utf-8")))
+    assert rows[0]["cluster_type"] == "grant_funded_program"
+    assert "grant- or program-funded activity" in rows[0]["narrative"]
