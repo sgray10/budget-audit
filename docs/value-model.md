@@ -4,15 +4,20 @@ Budget Audit creates value by turning public budget packet PDFs into reconciled,
 
 ## What the current dataset can already support
 
-Current reviewed funds for the Weakley FWM 2026-06-30 packet:
+All ten funds in the Weakley FWM 2026-06-30 packet are reviewed and reconciled, covering the entire budget-table page range (23-158):
 
-- Fund 101
-- Fund 116
-- Fund 122
-- Fund 131
-- Fund 141
+- Fund 101 General Fund
+- Fund 116 Solid Waste
+- Fund 122 Drug Control
+- Fund 131 Highway
+- Fund 141 General Purpose School
+- Fund 143 School Nutrition
+- Fund 151 Debt Service
+- Fund 171 General Capital Projects
+- Fund 172 Community Development
+- Fund 202 Nursing Home
 
-The current reviewed range covers pages 23-138. Fund 141 General Purpose School reconciles exactly to source summary totals:
+Every fund reconciles to its own printed source total exactly -- see `ROADMAP.md`'s reconciliation checkpoint table for the full per-fund numbers. Fund 141 General Purpose School, the largest and most complex fund in the packet:
 
 | Metric | Value |
 |---|---:|
@@ -20,20 +25,21 @@ The current reviewed range covers pages 23-138. Fund 141 General Purpose School 
 | Expenditure with transfers | 48,154,424 |
 | Net | 2,052 |
 
-## Near-term outputs
+## Current outputs
 
-The first useful output is a reviewed-funds report, not a claim of wrongdoing.
-
-Recommended report sections:
+All of the sections below are implemented and rendered in `reports/weakley-fwm-2026-06-30.md`, not just planned:
 
 1. Reviewed scope and limitations.
 2. Reconciled totals by fund.
-3. Largest budget-to-budget deltas.
-4. Largest actual-to-budget variances.
-5. One-dollar and zero-dollar placeholder rows.
-6. Grant and program lines that appear, disappear, or materially change.
-7. Neutral questions for public review.
-8. Methodology and confidence notes.
+3. Data-quality warnings, kept separate from substantive findings.
+4. Top clusters (related line items grouped by fund + label prefix, with revenue/expense pairing flagged).
+5. Largest absolute-dollar and percentage changes.
+6. One-dollar and zero-dollar placeholder rows (as a data-quality warning).
+7. Grant and program lines that appear, disappear, or materially change (`grant_roll_on`/`grant_roll_off` categories).
+8. Neutral, category-specific public-records questions for public review.
+9. Methodology and confidence notes.
+
+See `docs/report-design.md` for the full spec and its "Status" section for what's implemented vs. deferred (semantic-similarity clustering, fund-size-relative materiality, multi-jurisdiction config).
 
 ## Public-facing posture
 

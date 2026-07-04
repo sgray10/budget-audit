@@ -1,6 +1,6 @@
 # Weakley County FWM 2026-06-30 Packet Workflow
 
-This document records the current reproducible workflow for extracting structured budget rows from the Weakley County Finance, Ways, and Means packet dated 2026-06-30.
+This document records the reproducible workflow for extracting structured budget rows from the Weakley County Finance, Ways, and Means packet dated 2026-06-30, using the first checkpoint (funds 101/116/122/131/141, pages 23-138) as the worked example. **All ten funds in the packet are now extracted and reconciled, and the analysis/report layer covers the fuller `docs/report-design.md` taxonomy** -- see `ROADMAP.md`'s "Current checkpoint" section for the full-packet state and `README.md`'s quick-start commands for the all-funds `generate-report` invocation. The mechanics below (render, OCR, extract, enrich, classify, correct, reconcile) are unchanged; this doc just predates the later funds and the taxonomy expansion.
 
 ## Source document
 
@@ -8,7 +8,7 @@ Expected local path:
 
     data/raw/FWM-Meeting-Packet-6-30-26.pdf
 
-Generated local artifacts are intentionally kept under `data/` and should not be committed unless explicitly promoted.
+This file is committed to the repo (see issue #11 and `docs/methodology.md` "Preserve" for the storage policy). Other generated artifacts under `data/interim/` and `data/processed/` stay local/gitignored -- they're regenerable from the raw PDF plus the tracked `review/` CSVs.
 
 Manual row corrections (`--corrections` on `run-reviewed-range` / `apply-row-corrections`) are documented in `docs/corrections.md` -- when to use `add` vs `replace` vs a last-resort balancing correction, and how unmatched/ambiguous replace corrections are detected.
 

@@ -37,12 +37,22 @@ A good result may be `everything reconciles`. A good result may also be `this li
 budget-audit/
   README.md
   ROADMAP.md
+  data/
+    raw/           # committed -- public source packets, see "Data handling principles"
+    interim/        # gitignored, regenerable
+    processed/      # gitignored, regenerable
   docs/
     methodology.md
     data-model.md
+    report-design.md
+    backlog.md
+    milestones.md
+    value-model.md
+    corrections.md
     weakley-county.md
     weakley-fwm-2026-06-30-workflow.md
     public-records-request-template.md
+    checkpoints/
   reports/
     weakley-fwm-2026-06-30.md
   review/
@@ -51,15 +61,28 @@ budget-audit/
     __init__.py
     cli.py
     models.py
+    render.py
+    ocr.py
     ocr_table_rows.py
+    ocr_reports.py
     row_classify.py
+    enrich.py
+    review.py
     corrections.py
+    subtotal_reconcile.py
+    consolidate.py
     workflow.py
+    report_workflow.py
     analyze.py
+    compensation.py
+    clusters.py
+    data_quality.py
+    top_changes.py
     findings.py
     extract.py
     normalize.py
     reconcile.py
+    summarize.py
     report.py
   tests/
     test_*.py
@@ -98,17 +121,17 @@ Then consolidate reviewed ranges and generate the report:
 ```bash
 budget-audit generate-report \
   --rows data/processed/ocr_table_rows_023_085_corrected.csv \
-  --rows data/processed/ocr_table_rows_086_138_corrected.csv \
+  --rows data/processed/ocr_table_rows_86_138_corrected.csv \
   --rows data/processed/ocr_table_rows_139_142_corrected.csv \
   --rows data/processed/ocr_table_rows_143_149_corrected.csv \
-  --rows data/processed/ocr_table_rows_150_152_classified.csv \
+  --rows data/processed/ocr_table_rows_150_152_corrected.csv \
   --rows data/processed/ocr_table_rows_153_155_corrected.csv \
   --rows data/processed/ocr_table_rows_156_158_corrected.csv \
   --reconcile 101=data/processed/reconcile_fund_101_023_085.csv \
   --reconcile 116=data/processed/reconcile_fund_116_023_085.csv \
   --reconcile 122=data/processed/reconcile_fund_122_023_085.csv \
-  --reconcile 131=data/processed/reconcile_fund_131_023_085.csv \
-  --reconcile 141=data/processed/reconcile_fund_141_086_138.csv \
+  --reconcile 131=data/processed/reconcile_fund_131_023_085_corrected.csv \
+  --reconcile 141=data/processed/reconcile_fund_141_86_138.csv \
   --reconcile 143=data/processed/reconcile_fund_143_139_142.csv \
   --reconcile 151=data/processed/reconcile_fund_151_143_149.csv \
   --reconcile 171=data/processed/reconcile_fund_171_150_152.csv \
@@ -128,7 +151,7 @@ budget-audit generate-report \
 
 ## Current status
 
-The Weakley County 2026-06-30 packet workflow has extracted and reconciled the budget pages for all ten funds in pages 23-158. The analysis/report layer is useful but still intentionally conservative: it currently surfaces material deltas, selected compensation-review items, and reconciliation findings, while the fuller clustering and public-records-question design in `docs/report-design.md` remains the next major build-out.
+The Weakley County 2026-06-30 packet workflow has extracted and reconciled the budget pages for all ten funds in pages 23-158, and the analysis/report layer now implements the fuller `docs/report-design.md` taxonomy: an 8-category finding classification, dynamic label-prefix clustering with revenue/expense pairing detection, data-quality warnings separated from substantive findings, top absolute/percent change rankings, and category-specific public-records question templates. See `docs/report-design.md`'s "Status" section for exactly what's implemented vs. still deferred, and `ROADMAP.md` for the phase-by-phase picture. As of 2026-07-04, every tracked GitHub issue for this packet is closed; the next open work is Phase 7 (generalization beyond this one packet), not yet scoped into an issue.
 
 ## Current Weakley County OCR workflow
 
