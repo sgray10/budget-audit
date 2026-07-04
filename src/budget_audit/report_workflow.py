@@ -19,6 +19,7 @@ from budget_audit.findings import build_findings
 from budget_audit.json_export import csv_to_json, write_json
 from budget_audit.manual_corrections import summarize_manual_corrections, write_manual_corrections
 from budget_audit.priority_areas import build_priority_areas, write_priority_areas
+from budget_audit.related_items import build_label_index
 from budget_audit.questions import PUBLIC_RECORDS_QUESTIONS
 from budget_audit.report import load_reconcile_summary, render_report
 from budget_audit.structural_changes import detect_grant_funded_capital_pairs, detect_whole_fund_changes
@@ -32,6 +33,7 @@ from budget_audit.top_changes import analyze_top_changes
 # internal to priority_areas' own ranking logic.
 NOTABLE_CLUSTER_TYPES_FOR_DQ_CONTEXT = {
     "grant_funded_capital_project",
+    "mixed_grant_program",
     "grant_funded_program",
     "allocation_program",
     "debt_service",
@@ -113,13 +115,23 @@ def run_report_workflow(
         grant_capital_pairs=grant_capital_pairs,
     )
 
+    summaries = [load_reconcile_summary(fund, path) for fund, path in sorted(reconcile_paths.items())]
+
     top_change_rows = list(csv.DictReader(paths.top_changes.open(encoding="utf-8")))
     top_change_keys = frozenset(
         (row.get("document_id", ""), row.get("page_number", ""), row.get("account", "")) for row in top_change_rows
     )
     cluster_rows = list(csv.DictReader(paths.clusters.open(encoding="utf-8")))
+    # "Priority funds" for data-quality escalation: funds with a notable-typed
+    # cluster, a whole-fund structural change, a fund-level grant/capital
+    # pair, or a reconciliation gap flagged for review -- a corrupted label
+    # or unverified amount in any of these funds touches a number the
+    # report's priority sections are about to show a reader.
     priority_fund_numbers = frozenset(
-        row["fund_number"] for row in cluster_rows if row["cluster_type"] in NOTABLE_CLUSTER_TYPES_FOR_DQ_CONTEXT
+        {row["fund_number"] for row in cluster_rows if row["cluster_type"] in NOTABLE_CLUSTER_TYPES_FOR_DQ_CONTEXT}
+        | {change.fund_number for change in whole_fund_changes}
+        | {pair.fund_number for pair in grant_capital_pairs}
+        | {s["fund_number"] for s in summaries if s.get("status") == "needs_reconciliation_review"}
     )
     dq_context = ImpactContext(top_change_keys=top_change_keys, priority_fund_numbers=priority_fund_numbers)
 
@@ -131,16 +143,17 @@ def run_report_workflow(
     write_manual_corrections(paths.consolidated_rows, paths.manual_corrections)
 
     manual_correction_funds = set(manual_corrections_summary.by_fund.keys())
+    label_index = build_label_index(paths.consolidated_rows)
     priority_areas = build_priority_areas(
         paths.clusters,
         whole_fund_changes,
         grant_capital_pairs,
         high_impact_warnings,
         manual_correction_funds,
+        label_index=label_index,
     )
     write_priority_areas(priority_areas, paths.priority_areas)
 
-    summaries = [load_reconcile_summary(fund, path) for fund, path in sorted(reconcile_paths.items())]
     render_report(
         paths.findings,
         summaries,

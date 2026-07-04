@@ -39,7 +39,7 @@ This milestone is now fully complete.
 
 Source of truth is GitHub issues; this table is a quick index. Update it when issues open/close.
 
-**As of 2026-07-04 (later same day), every tracked issue is closed** -- there is no open backlog item. See `ROADMAP.md`'s Phase 7 for the next likely direction (generalization beyond this one packet), or open a new issue for the next concrete piece of work.
+**As of 2026-07-04 (later same day), issue #35 (report v3 refinement) is in progress; everything else is closed.**
 
 | Issue | Priority | Purpose | Status |
 |---:|---|---|---|
@@ -54,6 +54,7 @@ Source of truth is GitHub issues; this table is a quick index. Update it when is
 | #11 | Low | Decide raw public PDF storage policy. | Closed -- implemented in #28 |
 | #12 | Medium | Adopt the report-design.md finding taxonomy and clustering in the analysis layer. | Closed -- implemented across #17/#18/#23/#24 (Codex) and #25 |
 | #32 | Medium | Restructure report into a civic-intelligence review packet (executive summary, priority areas, fine-grained classification, data-quality gating, appendices). | Closed -- implemented in #33 |
+| #35 | Medium | Report v3: cross-linking, cluster-type refinement, DQ escalation, actionable priority areas. | Implemented, PR pending -- closes on merge |
 | #14 | Medium | apply_row_corrections' add action can't represent transfer/total row types. | Closed -- implemented in #26 |
 | #20 | Medium | Add top absolute-dollar and percentage change report sections (sub-issue of #12). | Closed -- implemented in #17/#18/#23/#24 (Codex) |
 | #21 | Medium | Cluster related findings before rendering public-facing report output (sub-issue of #12). | Closed -- implemented in #25 |
@@ -172,6 +173,26 @@ Acceptance criteria:
 - [x] Never call a fund "reconciled" when net is nonzero; new `reconciliation_status()` naming (`balanced_in_extraction`/`extracted_with_gap`/`needs_reconciliation_review`).
 
 Implemented across `classify.py`, `questions.py`, `clusters.py`, `structural_changes.py`, `data_quality.py`, `manual_corrections.py`, `priority_areas.py`, `findings.py`, `report.py`, `report_workflow.py`, `json_export.py`. Full design/status notes in `docs/report-design.md` "Status".
+
+### Report v3: cross-linking, cluster-type refinement, DQ escalation, actionable priority areas -- issue #35
+
+Follow-up refinement to #32. The structure was right; this pass improves classification accuracy and makes priority areas directly actionable.
+
+Acceptance criteria:
+
+- [x] Cluster-type refinement: `grant_funded_capital_project` now requires a material capital-dollar anchor (>=80% of cluster expenditure capital-classified), not just category presence -- fixes ISM (73% capital, real personnel/benefits spending alongside it) and PDG (59%) being over-classified as capital projects; new `mixed_grant_program` type for clusters between the dominant/immaterial thresholds.
+- [x] Priority-area cross-linking (`related_items.py`): semantically related items surfaced across funds/clusters via fund-name search, cluster-prefix-stem similarity, and packet-rare shared keywords -- validated against Fund 202 Nursing Home <-> Fund 101 `NH` revenue lines, and `OPID` <-> `OPIA`. Rendered with explicit "does not confirm a connection" language.
+- [x] Data-quality escalation for corrupted labels: new `label_corruption_reason()` detects genuinely OCR-mangled labels (validated against all 657 real distinct labels -- flags exactly the 2 known-corrupted ones, "CRD Other State lal eral Development" and "tisa 'N Investment yore Achievement", zero false positives); escalates to high-impact when paired with a large dollar amount or top-dollar-change/priority-cluster context.
+- [x] "Why this may be normal" neutral sentence per priority-area pattern type.
+- [x] "Recommended first records request" -- one concrete request per priority area, distinct from the open-ended questions list.
+- [x] Narratives guaranteed for every cluster referenced by a priority area, not just top-N by table ranking.
+- [x] One-sided cluster explanatory note (offsetting entry may be in another fund/transfers/debt proceeds/non-extracted schedule).
+- [x] Human-readable evidence on priority areas (key revenue/expenditure line page/account/label/amount references), not just `cluster_id=...`.
+- [x] Standard verbosity still excludes all four appendices; priority areas confirmed not to duplicate content across sections.
+
+Two small fixes came directly from reviewing a real regenerated report rather than from the original spec: the keyword-linking stoplist gained `health`/`patient` after both produced coincidental (non-substantive) cross-fund links despite clearing the packet-rarity gate, and priority areas that quote a corrupted label (e.g. the CRD one) now carry an inline caveat, since a reader hits the priority-areas section before the data-quality section explains the corruption.
+
+Implemented across `clusters.py`, `related_items.py` (new), `structural_changes.py`, `data_quality.py`, `priority_areas.py`, `report.py`, `report_workflow.py`. 20 new tests (174 total passing). Full design/status notes in `docs/report-design.md` "Status".
 
 ### Diff investment policy amendment (Resolution 2026-52) -- issue #10
 
