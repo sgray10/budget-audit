@@ -112,6 +112,53 @@ def render_data_quality_section(data_quality_path: Path | None) -> str:
     )
 
 
+def _top_change_table(rows: list[dict[str, str]]) -> str:
+    table_rows = [
+        [
+            row["rank"],
+            row["fund_number"],
+            row["label"],
+            row["old_value"],
+            row["new_value"],
+            row["absolute_delta"],
+            row["percent_delta"],
+            row["evidence"],
+        ]
+        for row in rows
+    ]
+    return markdown_table(
+        ["Rank", "Fund", "Label", "Old", "New", "Delta", "Percent", "Evidence"],
+        table_rows,
+    )
+
+
+def render_top_changes_section(top_changes_path: Path | None) -> str:
+    if top_changes_path is None:
+        return "## Top changes\n\nNo top-change rankings were generated for this report.\n"
+
+    rows = list(csv.DictReader(top_changes_path.open(encoding="utf-8")))
+    absolute_rows = [row for row in rows if row["rank_type"] == "absolute"]
+    percent_rows = [row for row in rows if row["rank_type"] == "percent"]
+
+    sections = ["## Top changes\n"]
+    if absolute_rows:
+        sections.append("### Top absolute-dollar changes\n")
+        sections.append(_top_change_table(absolute_rows))
+    else:
+        sections.append("### Top absolute-dollar changes\n\nNo absolute-dollar changes were ranked.\n")
+
+    if percent_rows:
+        sections.append("### Top percentage changes\n")
+        sections.append(_top_change_table(percent_rows))
+    else:
+        sections.append(
+            "### Top percentage changes\n\n"
+            "No percentage changes cleared the minimum dollar guardrail for this report.\n"
+        )
+
+    return "\n\n".join(sections)
+
+
 def render_findings_section(findings_path: Path) -> str:
     rows = list(csv.DictReader(findings_path.open(encoding="utf-8")))
     if not rows:
@@ -144,6 +191,7 @@ def render_report(
     report_date: date | None = None,
     *,
     data_quality_path: Path | None = None,
+    top_changes_path: Path | None = None,
 ) -> None:
     report_date = report_date or date.today()
     sections = [
@@ -154,6 +202,7 @@ def render_report(
         render_scope_section(),
         render_reconciliation_section(reconcile_summaries),
         render_data_quality_section(data_quality_path),
+        render_top_changes_section(top_changes_path),
         render_findings_section(findings_path),
         "## How to read this report\n\n"
         "This report uses neutral language deliberately: `unclear`, `needs explanation`, and "

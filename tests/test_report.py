@@ -11,6 +11,7 @@ from budget_audit.report import (
     render_findings_section,
     render_report,
     render_scope_section,
+    render_top_changes_section,
 )
 
 BANNED_WORDS = re.compile(r"\bhidden\b|\bsuspicious\b|\bwrong\b", re.IGNORECASE)
@@ -85,6 +86,27 @@ def test_render_data_quality_section_lists_warnings(tmp_path: Path) -> None:
     assert not BANNED_WORDS.search(section)
 
 
+def test_render_top_changes_section_lists_absolute_and_percent_rankings(tmp_path: Path) -> None:
+    top_changes_path = tmp_path / "top_changes.csv"
+    top_changes_path.write_text(
+        "rank_type,rank,document_id,page_number,fund_number,fund_name,budget_side,department,"
+        "account,label,old_value,new_value,absolute_delta,percent_delta,status,evidence\n"
+        "absolute,1,doc,23,101,General,expenditure,,40110,Big Increase,10000,20000,10000,100,present,"
+        "\"document=doc; page=23\"\n"
+        "percent,1,doc,23,101,General,expenditure,,40110,Big Increase,10000,20000,10000,100,present,"
+        "\"document=doc; page=23\"\n",
+        encoding="utf-8",
+    )
+
+    section = render_top_changes_section(top_changes_path)
+
+    assert "## Top changes" in section
+    assert "Top absolute-dollar changes" in section
+    assert "Top percentage changes" in section
+    assert "Big Increase" in section
+    assert not BANNED_WORDS.search(section)
+
+
 def test_render_report_writes_expected_sections(tmp_path: Path) -> None:
     findings_path = tmp_path / "findings.csv"
     findings_path.write_text(
@@ -107,6 +129,7 @@ def test_render_report_writes_expected_sections(tmp_path: Path) -> None:
     assert "## Scope" in content
     assert "## Reconciliation summary" in content
     assert "## Data-quality warnings" in content
+    assert "## Top changes" in content
     assert "## Findings" in content
     assert "## How to read this report" in content
     assert not BANNED_WORDS.search(content)

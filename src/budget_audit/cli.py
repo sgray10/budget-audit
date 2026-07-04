@@ -600,6 +600,7 @@ def generate_report_cmd(
         f"{stats['eliminated_line_rows']} eliminated; "
         f"{stats['compensation_needs_review']} compensation rows need review; "
         f"{stats['data_quality_warnings']} data-quality warnings; "
+        f"{stats['top_change_rows']} top-change rows; "
         f"{stats['total_findings']} total findings"
     )
     console.print(f"wrote report to {reports_dir / report_filename}")
