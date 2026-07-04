@@ -27,13 +27,12 @@ def test_markdown_table() -> None:
     assert table == "| A | B |\n| --- | --- |\n| 1 | 2 |"
 
 
-def test_render_scope_section_lists_included_and_excluded_funds() -> None:
+def test_render_scope_section_lists_full_packet_scope() -> None:
     section = render_scope_section()
-    for fund in ["101", "116", "122", "131", "141"]:
+    for fund in ["101", "116", "122", "131", "141", "143", "151", "171", "172", "202"]:
         assert fund in section
-    for fund in ["143", "151", "171", "172", "202"]:
-        assert fund in section
-    assert "not yet included" in section
+    assert "pages 23-158" in section
+    assert "not yet included" not in section
 
 
 def test_load_reconcile_summary(tmp_path: Path) -> None:

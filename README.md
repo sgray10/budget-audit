@@ -41,17 +41,28 @@ budget-audit/
     methodology.md
     data-model.md
     weakley-county.md
+    weakley-fwm-2026-06-30-workflow.md
     public-records-request-template.md
+  reports/
+    weakley-fwm-2026-06-30.md
+  review/
+    weakley-fwm-2026-06-30/
   src/budget_audit/
     __init__.py
     cli.py
     models.py
+    ocr_table_rows.py
+    row_classify.py
+    corrections.py
+    workflow.py
+    analyze.py
+    findings.py
     extract.py
     normalize.py
     reconcile.py
     report.py
   tests/
-    test_normalize.py
+    test_*.py
   examples/
     weakley_packet_manifest.example.yml
   pyproject.toml
@@ -60,19 +71,51 @@ budget-audit/
 
 ## Quick start
 
-This is an early scaffold. The intended local workflow will be:
+Install the package locally:
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .[dev]
+pip install -e '.[dev,ocr]'
+```
 
-budget-audit init-project data/weakley
-budget-audit inspect-pdf data/raw/FWM-Meeting-Packet-6-30-26.pdf
-budget-audit extract-tables data/raw/FWM-Meeting-Packet-6-30-26.pdf --out data/interim/tables
-budget-audit normalize data/interim/tables --out data/processed/line_items.csv
-budget-audit reconcile data/processed/line_items.csv
-budget-audit report data/processed/line_items.csv --out reports/weakley-fwm-2026-06-30.md
+The current Weakley County workflow has two main stages.
+
+First, produce reviewed/corrected rows for a page range:
+
+```bash
+budget-audit run-reviewed-range data/interim/ocr \
+  --pages 23-85 \
+  --document-id weakley-fwm-2026-06-30 \
+  --page-review review/weakley-fwm-2026-06-30/page_review_023_085.csv \
+  --corrections review/weakley-fwm-2026-06-30/manual_row_corrections_023_085.csv \
+  --out-dir data/processed \
+  --funds 101,116,122,131
+```
+
+Then consolidate reviewed ranges and generate the report:
+
+```bash
+budget-audit generate-report \
+  --rows data/processed/ocr_table_rows_023_085_corrected.csv \
+  --rows data/processed/ocr_table_rows_086_138_corrected.csv \
+  --rows data/processed/ocr_table_rows_139_142_corrected.csv \
+  --rows data/processed/ocr_table_rows_143_149_corrected.csv \
+  --rows data/processed/ocr_table_rows_150_152_classified.csv \
+  --rows data/processed/ocr_table_rows_153_155_corrected.csv \
+  --rows data/processed/ocr_table_rows_156_158_corrected.csv \
+  --reconcile 101=data/processed/reconcile_fund_101_023_085.csv \
+  --reconcile 116=data/processed/reconcile_fund_116_023_085.csv \
+  --reconcile 122=data/processed/reconcile_fund_122_023_085.csv \
+  --reconcile 131=data/processed/reconcile_fund_131_023_085.csv \
+  --reconcile 141=data/processed/reconcile_fund_141_086_138.csv \
+  --reconcile 143=data/processed/reconcile_fund_143_139_142.csv \
+  --reconcile 151=data/processed/reconcile_fund_151_143_149.csv \
+  --reconcile 171=data/processed/reconcile_fund_171_150_152.csv \
+  --reconcile 172=data/processed/reconcile_fund_172_153_155.csv \
+  --reconcile 202=data/processed/reconcile_fund_202_156_158.csv \
+  --out-dir data/processed \
+  --reports-dir reports
 ```
 
 ## Data handling principles
@@ -85,7 +128,7 @@ budget-audit report data/processed/line_items.csv --out reports/weakley-fwm-2026
 
 ## Current status
 
-Initial repository scaffold. Core implementation is intentionally minimal until we validate source formats and the analysis workflow against real packets.
+The Weakley County 2026-06-30 packet workflow has extracted and reconciled the budget pages for all ten funds in pages 23-158. The analysis/report layer is useful but still intentionally conservative: it currently surfaces material deltas, selected compensation-review items, and reconciliation findings, while the fuller clustering and public-records-question design in `docs/report-design.md` remains the next major build-out.
 
 ## Current Weakley County OCR workflow
 
@@ -100,6 +143,9 @@ Current pipeline stages:
 3. Extract likely budget table rows.
 4. Enrich rows with page-review metadata.
 5. Classify rows by row type and category.
-6. Summarize classified OCR rows by fund, section, and compensation category.
+6. Apply traceable manual corrections.
+7. Summarize classified OCR rows by fund, section, and compensation category.
+8. Reconcile fund totals and subtotal groups.
+9. Build findings and render a Markdown report.
 
 CI runs `pytest`, `ruff check .`, and `mypy .` on pushes and pull requests to `main`.

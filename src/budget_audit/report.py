@@ -8,23 +8,20 @@ from pathlib import Path
 from budget_audit.findings import FUND_NAMES
 
 # Funds that have been extracted, reviewed, and reconciled and are covered by
-# this report. Pages 139+ (funds 143, 151, 171, 172, 202) have not yet been
-# extracted -- see docs/backlog.md -- and must not be implied as covered.
+# this report for the 2026-06-30 Weakley County FWM packet.
 SCOPE_FUNDS = [
     ("101", "General"),
     ("116", "Solid Waste/Sanitation"),
     ("122", "Drug Enforcement"),
     ("131", "Highway"),
     ("141", "General Purpose School"),
+    ("143", "School Nutrition"),
+    ("151", "Debt Service"),
+    ("171", "General Capital Projects"),
+    ("172", "Community Development"),
+    ("202", "Nursing Home"),
 ]
-SCOPE_PAGES = "23-138"
-NOT_YET_INCLUDED_FUNDS = [
-    ("143", "School Nutrition -- not yet extracted"),
-    ("151", "Debt Service -- not yet extracted"),
-    ("171", "General Capital Projects -- not yet extracted"),
-    ("172", "Community Development -- not yet extracted"),
-    ("202", "Nursing Home -- not yet extracted"),
-]
+SCOPE_PAGES = "23-158"
 
 CATEGORY_TITLES = {
     "delta": "Material year-over-year changes",
@@ -51,7 +48,6 @@ def markdown_table(headers: list[str], rows: list[list[str]]) -> str:
 
 def render_scope_section() -> str:
     scope_rows = [[fund, name, "reconciled"] for fund, name in SCOPE_FUNDS]
-    not_included_rows = [[fund, note] for fund, note in NOT_YET_INCLUDED_FUNDS]
     return (
         "## Scope\n\n"
         f"This report covers pages {SCOPE_PAGES} of the "
@@ -59,12 +55,9 @@ def render_scope_section() -> str:
         f"across {len(SCOPE_FUNDS)} funds:\n\n"
         + markdown_table(["Fund", "Fund name", "Status"], scope_rows)
         + "\n\n"
-        "The following funds appear later in the packet (pages 139+) and are "
-        "**not yet included** in this report:\n\n"
-        + markdown_table(["Fund", "Status"], not_included_rows)
-        + "\n\n"
-        "Findings and totals below should not be read as covering the full "
-        "county budget."
+        "Findings and totals below cover the budget pages in this packet; they "
+        "should not be read as covering records or budget documents outside "
+        "the source packet."
     )
 
 
